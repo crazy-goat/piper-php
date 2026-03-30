@@ -19,7 +19,7 @@ $piper = new PiperTTS(modelsPath: __DIR__ . '/../models');
 
 $text  = $argv[1] ?? 'Hello! This is Piper text to speech, running natively in PHP.';
 $voice = $argv[2] ?? 'en_US-lessac-medium';
-$output = __DIR__ . '/../output.wav';
+$output = __DIR__ . '/speak.wav';
 
 echo "Voice: {$voice}\n";
 echo "Text:  {$text}\n\n";

@@ -22,7 +22,7 @@ $piper = new PiperTTS(modelsPath: __DIR__ . '/../models');
 
 $text  = $argv[1] ?? 'This is the first sentence. Here comes the second one. And finally, the third sentence!';
 $voice = $argv[2] ?? 'en_US-lessac-medium';
-$output = __DIR__ . '/../output.wav';
+$output = __DIR__ . '/stream.wav';
 
 echo "Voice: {$voice}\n";
 echo "Text:  {$text}\n\n";
