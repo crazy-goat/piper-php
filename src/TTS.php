@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OnnxTTS;
 
 use OnnxTTS\Models\PiperModel;
+use OnnxTTS\Exception\ModelCorruptedException;
 use OnnxTTS\Exception\ModelNotFoundException;
 use OnnxTTS\Exception\UnsupportedModelException;
 
@@ -96,7 +97,16 @@ class TTS
 
         $modelPath = $this->modelManager->getPath($this->currentModelId);
         $configPath = $modelPath . '/config.json';
-        $config = json_decode(file_get_contents($configPath), true);
+        $configData = @file_get_contents($configPath);
+        if ($configData === false) {
+            throw new ModelCorruptedException($this->currentModelId, 'Failed to read config.json');
+        }
+
+        try {
+            $config = json_decode($configData, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new ModelCorruptedException($this->currentModelId, 'Invalid JSON in config.json: ' . $e->getMessage());
+        }
 
         // Determine model type from config
         $modelType = $config['model_type'] ?? 'piper';
