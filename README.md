@@ -33,12 +33,22 @@ composer require crazy-goat/piper-php
 You can download pre-built libraries from the [latest release](https://github.com/crazy-goat/piper-php/releases/latest):
 
 ```bash
-# Download and extract pre-built libraries
+# Download individual libraries
+wget https://github.com/crazy-goat/piper-php/releases/latest/download/libpiper.so
+wget https://github.com/crazy-goat/piper-php/releases/latest/download/libonnxruntime.so
+wget https://github.com/crazy-goat/piper-php/releases/latest/download/espeak-ng-data.tar.gz
+
+# Extract espeak-ng-data
+tar -xzf espeak-ng-data.tar.gz
+```
+
+Or download all at once:
+```bash
 wget https://github.com/crazy-goat/piper-php/releases/latest/download/piper-build-linux-x86_64.tar.gz
 tar -xzf piper-build-linux-x86_64.tar.gz -C ./piper-libs
 ```
 
-This archive contains:
+This provides:
 - `libpiper.so` - Piper library
 - `libonnxruntime.so` - ONNX Runtime
 - `espeak-ng-data/` - Phoneme data
