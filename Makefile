@@ -38,7 +38,15 @@ build-libs: build-libpiper
 	@echo "  - espeak-ng-data/"
 
 examples: build-libs
-	@echo "Libraries built and ready for examples!"
+	@echo "Checking for voice model..."
+	@if [ ! -f models/en_US-lessac-medium.onnx ]; then \
+		echo "Downloading en_US-lessac-medium voice model..."; \
+		./bin/piper-tts download en_US-lessac-medium ./models; \
+	else \
+		echo "Voice model already exists: en_US-lessac-medium"; \
+	fi
+	@echo ""
+	@echo "Libraries and voice model ready!"
 	@echo "You can now run: php examples/speak.php"
 
 clean-piper1:
