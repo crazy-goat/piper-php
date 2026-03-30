@@ -8,7 +8,7 @@ use Exception;
 
 class ModelCorruptedException extends ModelException
 {
-    public function __construct(string $modelId, string $reason, int $code = 0, ?Exception $previous = null)
+    public function __construct(string $modelId, string $reason, int $code = 0, ?\Throwable $previous = null)
     {
         parent::__construct(
             "Model '{$modelId}' is corrupted: {$reason}",

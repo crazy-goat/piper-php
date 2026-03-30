@@ -8,7 +8,7 @@ use Exception;
 
 class NetworkException extends OnnxTTSException
 {
-    public function __construct(string $url, string $reason, int $code = 0, ?Exception $previous = null)
+    public function __construct(string $url, string $reason, int $code = 0, ?\Throwable $previous = null)
     {
         parent::__construct(
             "Network request to '{$url}' failed: {$reason}",

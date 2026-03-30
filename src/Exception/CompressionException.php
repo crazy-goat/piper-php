@@ -8,7 +8,7 @@ use Exception;
 
 class CompressionException extends AudioException
 {
-    public function __construct(string $format, string $reason, int $code = 0, ?Exception $previous = null)
+    public function __construct(string $format, string $reason, int $code = 0, ?\Throwable $previous = null)
     {
         parent::__construct(
             "Audio compression to '{$format}' failed: {$reason}. Consider using WAV format as a fallback.",

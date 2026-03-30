@@ -8,7 +8,7 @@ use Exception;
 
 class LibraryNotFoundException extends OnnxTTSException
 {
-    public function __construct(string $libraryPath, int $code = 0, ?Exception $previous = null)
+    public function __construct(string $libraryPath, int $code = 0, ?\Throwable $previous = null)
     {
         parent::__construct(
             "ONNX Runtime library not found at '{$libraryPath}'. Please install the ONNX Runtime library and ensure it is accessible.",
