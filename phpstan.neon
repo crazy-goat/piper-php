@@ -1,0 +1,8 @@
+parameters:
+    level: 9
+    paths:
+        - src
+        - examples
+        - bin
+    excludePaths:
+        - piper1-gpl/*

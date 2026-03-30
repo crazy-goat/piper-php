@@ -7,6 +7,35 @@ on:
     branches: [ master, main ]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: ffi
+        
+    - name: Validate composer.json
+      run: composer validate --strict
+      
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+      
+    - name: Run PHP_CodeSniffer
+      run: composer cs
+      
+    - name: Run PHPStan
+      run: composer phpstan
+      
+    - name: Run Rector (dry-run)
+      run: composer rector
+
   test:
     runs-on: ubuntu-latest
     
