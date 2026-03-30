@@ -11,24 +11,32 @@ class TextPreprocessor
     
     public function __construct(string $language = 'pl')
     {
+        $supportedLanguages = ['pl', 'en'];
+        if (!in_array($language, $supportedLanguages, true)) {
+            throw new \InvalidArgumentException("Unsupported language: {$language}. Supported: " . implode(', ', $supportedLanguages));
+        }
         $this->language = $language;
         $this->loadDefaultRules();
     }
     
     public function normalize(string $text): string
     {
-        // Trim whitespace
         $text = trim($text);
         
-        // Normalize whitespace
-        $text = preg_replace('/\s+/', ' ', $text);
+        $result = preg_replace('/\s+/', ' ', $text);
+        if ($result === null) {
+            throw new \RuntimeException('Regex error in whitespace normalization');
+        }
+        $text = $result;
         
-        // Apply custom rules
         foreach ($this->rules as $pattern => $replacement) {
-            $text = preg_replace($pattern, $replacement, $text);
+            $result = preg_replace($pattern, $replacement, $text);
+            if ($result === null) {
+                throw new \RuntimeException('Regex error in rules normalization');
+            }
+            $text = $result;
         }
         
-        // Normalize numbers
         $text = $this->normalizeNumbers($text);
         
         return $text;
@@ -41,7 +49,6 @@ class TextPreprocessor
     
     private function loadDefaultRules(): void
     {
-        // Language-specific rules
         switch ($this->language) {
             case 'pl':
                 $this->rules['/\bdr\b/i'] = 'doktor';
@@ -60,21 +67,19 @@ class TextPreprocessor
     
     private function normalizeNumbers(string $text): string
     {
-        return preg_replace_callback('/\d+/', function ($matches) {
+        $result = preg_replace_callback('/\d+/', function ($matches) {
             return $this->numberToWords((int) $matches[0]);
         }, $text);
+        if ($result === null) {
+            throw new \RuntimeException('Regex error in number normalization');
+        }
+        return $result;
     }
     
     private function numberToWords(int $number): string
     {
-        // Simplified implementation - full implementation would handle all cases
         if ($number === 0) {
-            return $this->language === 'pl' ? 'zero' : 'zero';
-        }
-        
-        if ($number < 0) {
-            $prefix = $this->language === 'pl' ? 'minus ' : 'minus ';
-            return $prefix . $this->numberToWords(-$number);
+            return 'zero';
         }
         
         if ($number < 100) {
@@ -97,7 +102,6 @@ class TextPreprocessor
             return $result;
         }
         
-        // For larger numbers, return as-is for now
         return (string) $number;
     }
     
