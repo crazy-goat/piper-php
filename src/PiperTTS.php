@@ -9,10 +9,10 @@ use FFI;
 
 /**
  * Factory class for loading Piper TTS models.
- * 
+ *
  * Manages library paths and creates LoadedModel instances.
  */
-final class PiperTTS
+final readonly class PiperTTS
 {
     private FFI $piper;
     private string $resolvedEspeakDataPath;
@@ -51,7 +51,7 @@ final class PiperTTS
     CDEF;
 
     public function __construct(
-        private readonly string $modelsPath,
+        private string $modelsPath,
         ?string $libpiperPath = null,
         ?string $onnxrtPath = null,
         ?string $espeakDataPath = null,
@@ -79,7 +79,6 @@ final class PiperTTS
      *
      * @param string $voice   Voice key (e.g. "pl_PL-gosia-medium")
      * @param bool   $warmUp  Whether to warm up the model immediately (avoids first-chunk delay)
-     * @return LoadedModel
      */
     public function loadModel(string $voice, bool $warmUp = false): LoadedModel
     {
@@ -98,7 +97,7 @@ final class PiperTTS
             throw new PiperException("piper_create failed for voice: {$voice}");
         }
 
-        $model = new LoadedModel($this->piper, $synth, $voice);
+        $model = new LoadedModel($this->piper, $synth);
 
         if ($warmUp) {
             $model->warmUp();
@@ -137,7 +136,7 @@ final class PiperTTS
             }
         }
 
-        usort($voices, fn(VoiceInfo $a, VoiceInfo $b) => $a->key <=> $b->key);
+        usort($voices, fn(VoiceInfo $a, VoiceInfo $b): int => $a->key <=> $b->key);
 
         return $voices;
     }

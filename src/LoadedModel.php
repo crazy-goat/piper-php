@@ -10,16 +10,15 @@ use FFI\CData;
 
 /**
  * Represents a loaded Piper TTS voice model.
- * 
+ *
  * Use this class to synthesize speech with a specific voice.
  * The model remains loaded in memory until explicitly freed.
  */
-final class LoadedModel
+final readonly class LoadedModel
 {
     public function __construct(
-        private readonly FFI $piper,
-        private readonly CData $synth,
-        private readonly string $voice,
+        private FFI $piper,
+        private CData $synth,
     ) {
     }
 
@@ -33,7 +32,7 @@ final class LoadedModel
      */
     public function free(): void
     {
-        if (isset($this->synth) && !FFI::isNull($this->synth)) {
+        if (!FFI::isNull($this->synth)) {
             $this->piper->piper_free($this->synth);
         }
     }

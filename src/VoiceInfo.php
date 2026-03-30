@@ -29,15 +29,31 @@ final readonly class VoiceInfo
             throw new Exception\PiperException("Cannot read voice config: {$jsonPath}");
         }
 
+        /** @var array<string, mixed> $config */
         $config = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
+
+        /** @var string $name */
+        $name = $config['dataset'] ?? $key;
+        /** @var array<string, mixed> $language */
+        $language = $config['language'] ?? [];
+        /** @var string $languageName */
+        $languageName = $language['name_english'] ?? 'Unknown';
+        /** @var string $languageCode */
+        $languageCode = $language['code'] ?? '';
+        /** @var array<string, mixed> $audio */
+        $audio = $config['audio'] ?? [];
+        /** @var string $quality */
+        $quality = $audio['quality'] ?? 'unknown';
+        /** @var int $numSpeakers */
+        $numSpeakers = $config['num_speakers'] ?? 1;
 
         return new self(
             key: $key,
-            name: $config['dataset'] ?? $key,
-            language: $config['language']['name_english'] ?? 'Unknown',
-            languageCode: $config['language']['code'] ?? '',
-            quality: $config['audio']['quality'] ?? 'unknown',
-            numSpeakers: $config['num_speakers'] ?? 1,
+            name: $name,
+            language: $languageName,
+            languageCode: $languageCode,
+            quality: $quality,
+            numSpeakers: $numSpeakers,
         );
     }
 }

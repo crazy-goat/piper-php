@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Text-to-speech with auto warm-up on model load.
  *

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Text-to-speech with warm-up: avoids first-chunk delay.
  *

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Simple text-to-speech: text → WAV file.
  *

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Streaming text-to-speech: generates audio chunk by chunk.
  *
@@ -48,14 +49,10 @@ foreach ($model->speakStreaming($text) as $chunk) {
     $chunkNum++;
     $sampleRate = $chunk->sampleRate;
     $ms = $sampleRate > 0 ? round(strlen($chunk->pcmData) / 2 / $sampleRate * 1000) : 0;
-    
+
     // Measure time since last chunk (generation time for this chunk)
     $now = microtime(true);
-    if ($chunkNum === 1) {
-        $chunkGenTime = round(($now - $t0) * 1000);
-    } else {
-        $chunkGenTime = round(($now - $lastChunkTime) * 1000);
-    }
+    $chunkGenTime = $chunkNum === 1 ? round(($now - $t0) * 1000) : round(($now - $lastChunkTime) * 1000);
     $lastChunkTime = $now;
     $totalGenTime += $chunkGenTime;
 
