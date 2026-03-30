@@ -70,14 +70,35 @@ cd piper-php
 # Or initialize submodules if already cloned
 git submodule update --init --recursive
 
-# Build libpiper and dependencies
+# Build libpiper and copy to libs/ (like composer does)
+make build-libs
+
+# Or build everything including espeakbridge
 make build-piper1
 ```
 
 The build will create:
-- `piper1-gpl/libpiper/build/libpiper.so` - Piper library
-- `piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so` - ONNX Runtime
+- `libs/libpiper.so` - Piper library (copied to project root)
+- `libs/libonnxruntime.so` - ONNX Runtime (with all versioned files)
+- `libs/espeak-ng-data/` - Phoneme data
 - `piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data` - Phoneme data
+
+### Running Examples Locally
+
+If you're developing locally (not via composer), build libraries and run examples:
+
+```bash
+# Build libraries and copy to libs/ directory
+make examples
+
+# Download a voice model
+./bin/piper-tts download en_US-lessac-medium ./models
+
+# Run example
+php examples/speak.php "Hello world"
+```
+
+This is equivalent to what `composer install` does automatically.
 
 ### Downloading Voice Models
 
