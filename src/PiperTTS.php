@@ -59,15 +59,15 @@ final class PiperTTS
         $this->resolvedOnnxrtPath = $onnxrtPath ?? $this->findOnnxrt(dirname($libpiperPath));
         $this->resolvedEspeakDataPath = $espeakDataPath ?? $this->findEspeakData(dirname($libpiperPath));
 
-        // onnxruntime must be loadable by the dynamic linker
-        $onnxrtDir = dirname($this->resolvedOnnxrtPath);
-        $ldPath = getenv('LD_LIBRARY_PATH') ?: '';
-        if (!str_contains($ldPath, $onnxrtDir)) {
-            putenv("LD_LIBRARY_PATH={$onnxrtDir}:{$ldPath}");
+        // Load onnxruntime with RTLD_GLOBAL so libpiper can find it.
+        // FFI::cdef() uses RTLD_LAZY by default which doesn't expose symbols globally,
+        // so we use dlopen() directly with RTLD_LAZY|RTLD_GLOBAL.
+        $dl = FFI::cdef('void *dlopen(const char *filename, int flags); char *dlerror(void);');
+        $handle = $dl->dlopen($this->resolvedOnnxrtPath, 1 | 256); // RTLD_LAZY=1, RTLD_GLOBAL=256
+        if (FFI::isNull($handle)) {
+            throw new PiperException('Failed to load onnxruntime: ' . FFI::string($dl->dlerror()));
         }
 
-        // Load onnxruntime first (libpiper depends on it), then libpiper
-        FFI::cdef('', $this->resolvedOnnxrtPath);
         $this->piper = FFI::cdef(self::CDEF, $libpiperPath);
     }
 
