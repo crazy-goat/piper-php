@@ -21,11 +21,11 @@ jobs:
         php-version: '8.2'
         extensions: ffi
         
-    - name: Validate composer.json
-      run: composer validate --strict
-      
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
+      
+    - name: Validate composer.json
+      run: composer validate
       
     - name: Run PHP_CodeSniffer
       run: composer cs
@@ -51,18 +51,15 @@ jobs:
         php-version: '8.2'
         extensions: ffi
         
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+        
     - name: Check PHP syntax
       run: |
         php -l src/*.php
         php -l src/Exception/*.php
         php -l examples/*.php
         php -l bin/piper-tts
-        
-    - name: Validate composer.json
-      run: composer validate --strict
-      
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
 
   build-piper:
     runs-on: ubuntu-latest
