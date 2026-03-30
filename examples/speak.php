@@ -17,9 +17,9 @@ use CrazyGoat\PiperTTS\PiperTTS;
 
 $piper = new PiperTTS(
     modelsPath:     __DIR__ . '/../models',
-    libpiperPath:   __DIR__ . '/../piper1-gpl/libpiper/build/libpiper.so',
-    onnxrtPath:     __DIR__ . '/../piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so',
-    espeakDataPath: __DIR__ . '/../piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data',
+    libpiperPath:   __DIR__ . '/../piper-libs/libpiper.so',
+    onnxrtPath:     __DIR__ . '/../piper-libs/libonnxruntime.so',
+    espeakDataPath: __DIR__ . '/../piper-libs/espeak-ng-data',
 );
 
 $text  = $argv[1] ?? 'Hello! This is Piper text to speech, running natively in PHP.';

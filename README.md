@@ -28,9 +28,24 @@ Fast, local text-to-speech synthesis without external services. Piper runs entir
 composer require crazy-goat/piper-php
 ```
 
-### Building Piper
+### Download Pre-built Libraries
 
-This package requires the Piper C library. Build it from the included submodule:
+You can download pre-built libraries from the [latest release](https://github.com/crazy-goat/piper-php/releases/latest):
+
+```bash
+# Download and extract pre-built libraries
+wget https://github.com/crazy-goat/piper-php/releases/latest/download/piper-build-linux-x86_64.tar.gz
+tar -xzf piper-build-linux-x86_64.tar.gz -C ./piper-libs
+```
+
+This archive contains:
+- `libpiper.so` - Piper library
+- `libonnxruntime.so` - ONNX Runtime
+- `espeak-ng-data/` - Phoneme data
+
+### Building from Source
+
+If you prefer to build from source or need a different architecture:
 
 ```bash
 # Clone with submodules
@@ -77,12 +92,12 @@ require_once 'vendor/autoload.php';
 
 use CrazyGoat\PiperTTS\PiperTTS;
 
-// Initialize TTS with library paths
+// Initialize TTS with pre-built libraries (downloaded from release)
 $piper = new PiperTTS(
     modelsPath:     __DIR__ . '/models',
-    libpiperPath:   __DIR__ . '/piper1-gpl/libpiper/build/libpiper.so',
-    onnxrtPath:     __DIR__ . '/piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so',
-    espeakDataPath: __DIR__ . '/piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data',
+    libpiperPath:   __DIR__ . '/piper-libs/libpiper.so',
+    onnxrtPath:     __DIR__ . '/piper-libs/libonnxruntime.so',
+    espeakDataPath: __DIR__ . '/piper-libs/espeak-ng-data',
 );
 
 // Load voice with automatic warm-up (recommended for production)
