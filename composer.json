@@ -12,7 +12,7 @@
             "CrazyGoat\\PiperTTS\\": "src/"
         }
     },
-"bin": ["bin/piper-tts", "scripts/piper-install"],
+"bin": ["bin/piper-tts"],
     "scripts": {
         "lint": ["phpcs --standard=phpcs.xml.dist", "@rector", "@phpstan"],
         "lint:fix": ["@rector:fix", "phpcbf --standard=phpcs.xml.dist"],
