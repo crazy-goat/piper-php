@@ -38,12 +38,18 @@ build-libs: build-libpiper
 	@echo "  - espeak-ng-data/"
 
 examples: build-libs
-	@echo "Checking for voice model..."
-	@if [ ! -f models/en_US-lessac-medium.onnx ] || [ ! -f models/en_US-lessac-medium.onnx.json ]; then \
-		echo "Downloading en_US-lessac-medium voice model..."; \
+	@echo "Checking for voice model files..."
+	@if [ ! -f models/en_US-lessac-medium.onnx ]; then \
+		echo "Downloading en_US-lessac-medium.onnx..."; \
 		./bin/piper-tts download en_US-lessac-medium ./models; \
 	else \
-		echo "Voice model already exists: en_US-lessac-medium"; \
+		echo "✓ en_US-lessac-medium.onnx exists"; \
+	fi
+	@if [ ! -f models/en_US-lessac-medium.onnx.json ]; then \
+		echo "Downloading en_US-lessac-medium.onnx.json..."; \
+		./bin/piper-tts download en_US-lessac-medium ./models; \
+	else \
+		echo "✓ en_US-lessac-medium.onnx.json exists"; \
 	fi
 	@echo ""
 	@echo "Libraries and voice model ready!"
