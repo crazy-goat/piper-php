@@ -97,6 +97,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        # Create release if it doesn't exist, then upload asset
+        gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}" || true
         gh release upload ${{ github.ref_name }} piper-build-linux-x86_64.tar.gz --clobber
         
     - name: Upload build artifacts
