@@ -23,7 +23,7 @@ jobs:
         extensions: ffi
         
     - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
+      run: composer update --prefer-dist --no-progress
       
     - name: Run PHP_CodeSniffer
       run: composer cs
@@ -50,7 +50,7 @@ jobs:
         extensions: ffi
         
     - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
+      run: composer update --prefer-dist --no-progress
         
     - name: Check PHP syntax
       run: |
