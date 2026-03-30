@@ -18,7 +18,7 @@ class OnnxRuntimeTest extends TestCase
 
     public function testGetVersionReturnsString(): void
     {
-        $libraryPath = getenv('ORT_LIBRARY') ?: '/usr/local/lib/libonnxruntime.so';
+        $libraryPath = getenv('ORT_LIBRARY') ?: '/lib/x86_64-linux-gnu/libonnxruntime.so.1.21';
 
         if (!file_exists($libraryPath)) {
             $this->markTestSkipped('ONNX Runtime not installed');

@@ -18,7 +18,7 @@ use OnnxTTS\ModelManager;
 use OnnxTTS\TTS;
 
 // Configuration
-$ortLibraryPath = getenv('ORT_LIBRARY') ?: '/usr/local/lib/libonnxruntime.so';
+$ortLibraryPath = getenv('ORT_LIBRARY') ?: '/lib/x86_64-linux-gnu/libonnxruntime.so.1.21';
 $cacheDirectory = getenv('HOME') . '/.cache/onnx-tts';
 
 echo "=== ONNX PHP TTS Example ===\n\n";

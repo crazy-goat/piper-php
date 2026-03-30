@@ -40,7 +40,7 @@ use OnnxTTS\ModelManager;
 use OnnxTTS\TTS;
 
 // Initialize
-$runtime = new OnnxRuntime('/path/to/libonnxruntime.so');
+$runtime = new OnnxRuntime('/lib/x86_64-linux-gnu/libonnxruntime.so.1.21');
 $manager = new ModelManager(getenv('HOME') . '/.cache/onnx-tts');
 $tts = new TTS($runtime, $manager);
 

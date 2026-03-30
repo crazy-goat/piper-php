@@ -39,11 +39,11 @@ class TTSTest extends TestCase
 
     public function testFluentInterfaceReturnsSelf(): void
     {
-        if (!file_exists(getenv('ORT_LIBRARY') ?: '/usr/local/lib/libonnxruntime.so')) {
+        if (!file_exists(getenv('ORT_LIBRARY') ?: '/lib/x86_64-linux-gnu/libonnxruntime.so.1.21')) {
             $this->markTestSkipped('ONNX Runtime not installed');
         }
 
-        $runtime = new OnnxRuntime(getenv('ORT_LIBRARY') ?: '/usr/local/lib/libonnxruntime.so');
+        $runtime = new OnnxRuntime(getenv('ORT_LIBRARY') ?: '/lib/x86_64-linux-gnu/libonnxruntime.so.1.21');
         $manager = new ModelManager($this->tempDir);
         $tts = new TTS($runtime, $manager);
 

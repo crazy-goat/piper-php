@@ -10,7 +10,7 @@ use OnnxTTS\ModelManager;
 use OnnxTTS\TTS;
 
 // Configuration
-$ortLibrary = getenv('ORT_LIBRARY') ?: '/usr/local/lib/libonnxruntime.so';
+$ortLibrary = getenv('ORT_LIBRARY') ?: '/lib/x86_64-linux-gnu/libonnxruntime.so.1.21';
 $cacheDir = getenv('HOME') . '/.cache/onnx-tts';
 
 // Initialize components

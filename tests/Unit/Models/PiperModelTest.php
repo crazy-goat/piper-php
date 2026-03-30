@@ -12,11 +12,11 @@ class PiperModelTest extends TestCase
 {
     public function testConstructorSetsProperties(): void
     {
-        if (!file_exists(getenv('ORT_LIBRARY') ?: '/usr/local/lib/libonnxruntime.so')) {
+        if (!file_exists(getenv('ORT_LIBRARY') ?: '/lib/x86_64-linux-gnu/libonnxruntime.so.1.21')) {
             $this->markTestSkipped('ONNX Runtime not installed');
         }
         
-        $runtime = new OnnxRuntime(getenv('ORT_LIBRARY') ?: '/usr/local/lib/libonnxruntime.so');
+        $runtime = new OnnxRuntime(getenv('ORT_LIBRARY') ?: '/lib/x86_64-linux-gnu/libonnxruntime.so.1.21');
         $model = new PiperModel($runtime, '/tmp/fake-model');
         
         $this->assertInstanceOf(PiperModel::class, $model);
@@ -24,11 +24,11 @@ class PiperModelTest extends TestCase
     
     public function testSetSpeakerAndSpeed(): void
     {
-        if (!file_exists(getenv('ORT_LIBRARY') ?: '/usr/local/lib/libonnxruntime.so')) {
+        if (!file_exists(getenv('ORT_LIBRARY') ?: '/lib/x86_64-linux-gnu/libonnxruntime.so.1.21')) {
             $this->markTestSkipped('ONNX Runtime not installed');
         }
         
-        $runtime = new OnnxRuntime(getenv('ORT_LIBRARY') ?: '/usr/local/lib/libonnxruntime.so');
+        $runtime = new OnnxRuntime(getenv('ORT_LIBRARY') ?: '/lib/x86_64-linux-gnu/libonnxruntime.so.1.21');
         $model = new PiperModel($runtime, '/tmp/fake-model');
         
         $model->setSpeaker('speaker1');
