@@ -23,28 +23,26 @@ class OnnxRuntimeFFI
 
     private const ORT_API_DEF = '
         typedef struct OrtApi {
-            void* (*CreateEnv)(int logging_level, const char* logid, void** env);
-            void (*ReleaseEnv)(void* env);
-            void* (*CreateSession)(void* env, const char* model_path, void* options, void** session);
-            void (*ReleaseSession)(void* session);
-            void* (*CreateSessionOptions)(void** options);
-            void (*ReleaseSessionOptions)(void* options);
-            void* (*CreateRunOptions)(void** options);
-            void (*ReleaseRunOptions)(void* options);
-            void* (*Run)(void* session, void* run_options, const char** input_names, 
-                         void** inputs, size_t input_count, const char** output_names,
-                         size_t output_count, void** outputs);
-            void* (*CreateCpuMemoryInfo)(int allocator_type, int mem_type, void** info);
-            void (*ReleaseMemoryInfo)(void* info);
-            void* (*CreateTensorWithDataAsOrtValue)(void* info, void* data, size_t data_length,
-                                                     const int64_t* shape, size_t shape_len, 
-                                                     int type, void** value);
-            void (*ReleaseValue)(void* value);
-            const char* (*GetErrorMessage)(void* status);
-            void (*ReleaseStatus)(void* status);
-            const char* (*GetVersionString)(void);
-            void* (*SessionGetInputCount)(void* session, size_t* count);
-            void* (*SessionGetOutputCount)(void* session, size_t* count);
+            void* CreateStatus;
+            void* GetErrorCode;
+            void* GetErrorMessage;
+            void* ReleaseStatus;
+            void* CreateEnv;
+            void* ReleaseEnv;
+            void* CreateSession;
+            void* ReleaseSession;
+            void* CreateSessionOptions;
+            void* ReleaseSessionOptions;
+            void* CreateRunOptions;
+            void* ReleaseRunOptions;
+            void* Run;
+            void* CreateCpuMemoryInfo;
+            void* ReleaseMemoryInfo;
+            void* CreateTensorWithDataAsOrtValue;
+            void* ReleaseValue;
+            void* GetVersionString;
+            void* SessionGetInputCount;
+            void* SessionGetOutputCount;
         } OrtApi;
     ';
 
@@ -62,7 +60,7 @@ class OnnxRuntimeFFI
 
             // Cast to OrtApi struct
             self::$ffi = FFI::cdef(self::ORT_API_DEF, $libraryPath);
-            self::$api = $api;
+            self::$api = self::$ffi->cast('OrtApi*', $api);
         }
 
         return self::$ffi;
