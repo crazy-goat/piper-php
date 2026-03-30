@@ -14,8 +14,6 @@
     },
 "bin": ["bin/piper-tts", "scripts/piper-install"],
     "scripts": {
-        "post-install-cmd": "php scripts/piper-install",
-        "post-update-cmd": "php scripts/piper-install",
         "lint": ["phpcs --standard=phpcs.xml.dist", "@rector", "@phpstan"],
         "lint:fix": ["@rector:fix", "phpcbf --standard=phpcs.xml.dist"],
         "phpstan": "phpstan analyse",
