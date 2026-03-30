@@ -1,3 +1,4 @@
 [submodule "piper1-gpl"]
 	path = piper1-gpl
 	url = https://github.com/OHF-Voice/piper1-gpl.git
+	shallow = true
