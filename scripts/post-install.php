@@ -6,11 +6,33 @@ declare(strict_types=1);
  * Post-install script to download pre-built Piper libraries.
  * 
  * This script runs after composer install/update and downloads
- * the pre-built libraries from GitHub releases.
+ * the pre-built libraries from GitHub releases for the current architecture.
  */
 
 $baseDir = __DIR__ . '/..';
 $libsDir = $baseDir . '/libs';
+
+// Detect system architecture
+$arch = php_uname('m');
+$os = strtolower(php_uname('s'));
+
+// Map PHP architecture to our naming convention
+$archMap = [
+    'x86_64' => 'x86_64',
+    'amd64' => 'x86_64',
+    'aarch64' => 'aarch64',
+    'arm64' => 'aarch64',
+];
+
+$archKey = $archMap[$arch] ?? $arch;
+
+// Currently only Linux x86_64 is supported
+if ($os !== 'linux' || $archKey !== 'x86_64') {
+    echo "Warning: Pre-built libraries are only available for Linux x86_64.\n";
+    echo "Your system: {$os} {$arch}\n";
+    echo "Please build from source: make build-piper1\n";
+    exit(0);
+}
 
 // Create libs directory if it doesn't exist
 if (!is_dir($libsDir)) {
@@ -22,8 +44,8 @@ if (!is_dir($libsDir)) {
 $releaseUrl = 'https://github.com/crazy-goat/piper-php/releases/latest/download/';
 
 $files = [
-    'libpiper-linux-x86_64.tar.gz',
-    'libonnxruntime-linux-x86_64.tar.gz',
+    "libpiper-linux-{$archKey}.tar.gz",
+    "libonnxruntime-linux-{$archKey}.tar.gz",
     'espeak-ng-data.tar.gz',
 ];
 
@@ -85,3 +107,4 @@ if ($downloaded) {
 
 echo "\nPost-install complete!\n";
 echo "Libraries are available in: {$libsDir}\n";
+echo "Architecture: {$os} {$arch}\n";
