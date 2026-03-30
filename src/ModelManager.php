@@ -61,7 +61,9 @@ class ModelManager
         $modelDir = $this->getPath($modelId);
         
         if (!is_dir($modelDir)) {
-            mkdir($modelDir, 0755, true);
+            if (!mkdir($modelDir, 0755, true) && !is_dir($modelDir)) {
+                throw new \RuntimeException("Failed to create directory: {$modelDir}");
+            }
         }
         
         switch ($source) {
@@ -75,6 +77,9 @@ class ModelManager
     
     public function getPath(string $modelId): string
     {
+        if (preg_match('/[\/\\\\.]/', $modelId)) {
+            throw new \InvalidArgumentException("Invalid model ID: {$modelId}");
+        }
         return $this->cacheDir . '/' . $modelId;
     }
     
@@ -103,8 +108,9 @@ class ModelManager
         }
         
         // Check for required files
-        $hasOnnx = file_exists($modelDir . '/model.onnx') || 
-                   count(glob($modelDir . '/*.onnx')) > 0;
+        $onnxFiles = glob($modelDir . '/*.onnx');
+        $hasOnnx = file_exists($modelDir . '/model.onnx') ||
+                   ($onnxFiles !== false && count($onnxFiles) > 0);
         $hasConfig = file_exists($modelDir . '/config.json');
         
         return $hasOnnx && $hasConfig;
@@ -122,41 +128,61 @@ class ModelManager
         $repo = $modelInfo['repo'];
         $path = $modelInfo['path'];
         
-        // Download config.json
-        $configUrl = "https://huggingface.co/{$repo}/resolve/main/{$path}/config.json";
-        $this->downloadFile($configUrl, $modelDir . '/config.json');
-        
-        // Download model.onnx
-        $modelUrl = "https://huggingface.co/{$repo}/resolve/main/{$path}/model.onnx";
-        $this->downloadFile($modelUrl, $modelDir . '/model.onnx');
+        try {
+            // Download config.json
+            $configUrl = "https://huggingface.co/{$repo}/resolve/main/{$path}/config.json";
+            $this->downloadFile($configUrl, $modelDir . '/config.json');
+
+            // Download model.onnx
+            $modelUrl = "https://huggingface.co/{$repo}/resolve/main/{$path}/model.onnx";
+            $this->downloadFile($modelUrl, $modelDir . '/model.onnx');
+        } catch (\Exception $e) {
+            // Clean up partial download
+            $this->recursiveDelete($modelDir);
+            throw $e;
+        }
     }
     
     private function downloadFile(string $url, string $destination): void
     {
         $context = stream_context_create([
             'http' => [
-                'timeout' => 300, // 5 minutes for large models
+                'timeout' => 300,
                 'follow_location' => true,
             ]
         ]);
-        
-        $data = @file_get_contents($url, false, $context);
-        
-        if ($data === false) {
-            throw new NetworkException($url, 'Failed to download file');
+
+        $source = @fopen($url, 'r', false, $context);
+        if ($source === false) {
+            throw new NetworkException($url, 'Failed to open download stream');
         }
-        
-        $result = file_put_contents($destination, $data, LOCK_EX);
-        
-        if ($result === false) {
-            throw new \RuntimeException("Failed to save file: {$destination}");
+
+        $target = @fopen($destination, 'w');
+        if ($target === false) {
+            fclose($source);
+            throw new \RuntimeException("Failed to create file: {$destination}");
         }
+
+        while (!feof($source)) {
+            $chunk = fread($source, 8192);
+            if ($chunk === false || fwrite($target, $chunk) === false) {
+                fclose($source);
+                fclose($target);
+                unlink($destination);
+                throw new NetworkException($url, 'Failed during download');
+            }
+        }
+
+        fclose($source);
+        fclose($target);
     }
     
     private function ensureCacheDirExists(): void
     {
         if (!is_dir($this->cacheDir)) {
-            mkdir($this->cacheDir, 0755, true);
+            if (!mkdir($this->cacheDir, 0755, true) && !is_dir($this->cacheDir)) {
+                throw new \RuntimeException("Failed to create directory: {$this->cacheDir}");
+            }
         }
     }
     

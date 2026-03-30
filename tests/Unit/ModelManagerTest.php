@@ -93,4 +93,32 @@ class ModelManagerTest extends TestCase
         $this->assertContains('model1', $models);
         $this->assertContains('model2', $models);
     }
+
+    public function testDeleteRemovesModel(): void
+    {
+        // Create fake model
+        $modelDir = $this->cacheDir . '/test-model';
+        mkdir($modelDir, 0777, true);
+        file_put_contents($modelDir . '/model.onnx', 'data');
+        file_put_contents($modelDir . '/config.json', '{}');
+
+        $this->assertTrue($this->manager->isDownloaded('test-model'));
+
+        $this->manager->delete('test-model');
+
+        $this->assertFalse($this->manager->isDownloaded('test-model'));
+        $this->assertDirectoryDoesNotExist($modelDir);
+    }
+
+    public function testDeleteThrowsForMissingModel(): void
+    {
+        $this->expectException(ModelNotFoundException::class);
+        $this->manager->delete('nonexistent-model');
+    }
+
+    public function testInvalidModelIdThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->manager->getPath('../../etc/passwd');
+    }
 }
