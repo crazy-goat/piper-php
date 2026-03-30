@@ -28,16 +28,18 @@ Fast, local text-to-speech synthesis without external services. Piper runs entir
 composer require crazy-goat/piper-php
 ```
 
-### Automatic Library Download
+### Download Pre-built Libraries
 
-When you install the package via Composer, the pre-built libraries are automatically downloaded to `vendor/crazy-goat/piper-php/libs/`:
+After installing the package, download the pre-built libraries:
 
 ```bash
 composer require crazy-goat/piper-php
-# Libraries are downloaded automatically during installation!
+
+# Download libraries (one command!)
+vendor/bin/piper-install
 ```
 
-The post-install script will download:
+This will download and extract to `vendor/crazy-goat/piper-php/libs/`:
 - `libpiper.so` - Piper library
 - `libonnxruntime.so` - ONNX Runtime  
 - `espeak-ng-data/` - Phoneme data
