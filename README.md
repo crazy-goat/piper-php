@@ -41,7 +41,7 @@ use OnnxTTS\TTS;
 
 // Initialize
 $runtime = new OnnxRuntime('/path/to/libonnxruntime.so');
-$manager = new ModelManager('~/.cache/onnx-tts');
+$manager = new ModelManager(getenv('HOME') . '/.cache/onnx-tts');
 $tts = new TTS($runtime, $manager);
 
 // Download a model (first time only)
