@@ -39,7 +39,7 @@ build-libs: build-libpiper
 
 examples: build-libs
 	@echo "Checking for voice model..."
-	@if [ ! -f models/en_US-lessac-medium.onnx ]; then \
+	@if [ ! -f models/en_US-lessac-medium.onnx ] || [ ! -f models/en_US-lessac-medium.onnx.json ]; then \
 		echo "Downloading en_US-lessac-medium voice model..."; \
 		./bin/piper-tts download en_US-lessac-medium ./models; \
 	else \
