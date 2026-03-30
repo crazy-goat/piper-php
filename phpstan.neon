@@ -8,6 +8,9 @@ parameters:
         - piper1-gpl/*
     ignoreErrors:
         # FFI uses dynamic method calls that static analysis cannot understand
-        - '#Call to an undefined method FFI::#'
-        - '#Access to an undefined property FFI\\CData::#'
-        - '#Parameter \#1 \$ptr of static method FFI::isNull\(\) expects FFI\\CData, object given#'
+        - message: '#Call to an undefined method FFI::#'
+          path: src/*.php
+        - message: '#Access to an undefined property FFI\\CData::#'
+          path: src/*.php
+        - message: '#Parameter \#1 \$ptr of static method FFI::isNull\(\) expects FFI\\CData, object given#'
+          path: src/*.php
