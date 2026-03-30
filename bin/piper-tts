@@ -31,7 +31,7 @@ match ($command) {
     'list' => commandList(array_slice($argv, 2)),
     'download' => commandDownload(array_slice($argv, 2)),
     'installed' => commandInstalled(array_slice($argv, 2)),
-    'install' => commandInstall(array_slice($argv, 2)),
+    'install-deps' => commandInstallDeps(array_slice($argv, 2)),
     default => usage(),
 };
 
@@ -43,13 +43,13 @@ function usage(): never
 Piper TTS — voice model and library manager
 
 Usage:
-  piper-tts install                          Download pre-built libraries
-  piper-tts list [--language=CODE]           List available voices from HuggingFace
-  piper-tts download VOICE_KEY PATH          Download a voice model
-  piper-tts installed PATH                   List locally installed voices
+  piper-tts install-deps                       Download pre-built libraries
+  piper-tts list [--language=CODE]              List available voices from HuggingFace
+  piper-tts download VOICE_KEY PATH           Download a voice model
+  piper-tts installed PATH                    List locally installed voices
 
 Examples:
-  piper-tts install
+  piper-tts install-deps
   piper-tts list --language=pl
   piper-tts download pl_PL-gosia-medium ./models
   piper-tts installed ./models
@@ -213,7 +213,7 @@ function commandInstalled(array $args): void
     printf("\n  Total: %d voices\n", $count);
 }
 
-function commandInstall(array $args): void
+function commandInstallDeps(array $args): void
 {
     $baseDir = __DIR__ . '/..';
     $libsDir = $baseDir . '/libs';

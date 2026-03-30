@@ -36,7 +36,7 @@ After installing the package, download the pre-built libraries:
 composer require crazy-goat/piper-php
 
 # Download libraries (one command!)
-vendor/bin/piper-tts install
+vendor/bin/piper-tts install-deps
 ```
 
 This will download and extract to `vendor/crazy-goat/piper-php/libs/`:
