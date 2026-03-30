@@ -28,16 +28,26 @@ Fast, local text-to-speech synthesis without external services. Piper runs entir
 composer require crazy-goat/piper-php
 ```
 
-### Download Pre-built Libraries
+### Automatic Library Download
 
-You can download pre-built libraries from the [latest release](https://github.com/crazy-goat/piper-php/releases/latest):
+When you install the package via Composer, the pre-built libraries are automatically downloaded to `vendor/crazy-goat/piper-php/libs/`:
 
 ```bash
-# Create directory for libraries
-mkdir -p piper-libs
-cd piper-libs
+composer require crazy-goat/piper-php
+# Libraries are downloaded automatically during installation!
+```
 
-# Download and extract individual libraries
+The post-install script will download:
+- `libpiper.so` - Piper library
+- `libonnxruntime.so` - ONNX Runtime  
+- `espeak-ng-data/` - Phoneme data
+
+### Manual Download
+
+If you prefer to download manually or need a specific version:
+
+```bash
+# Download individual libraries
 wget https://github.com/crazy-goat/piper-php/releases/latest/download/libpiper-linux-x86_64.tar.gz
 wget https://github.com/crazy-goat/piper-php/releases/latest/download/libonnxruntime-linux-x86_64.tar.gz
 wget https://github.com/crazy-goat/piper-php/releases/latest/download/espeak-ng-data.tar.gz
@@ -46,15 +56,7 @@ wget https://github.com/crazy-goat/piper-php/releases/latest/download/espeak-ng-
 tar -xzf libpiper-linux-x86_64.tar.gz
 tar -xzf libonnxruntime-linux-x86_64.tar.gz
 tar -xzf espeak-ng-data.tar.gz
-
-# Clean up archives
-rm *.tar.gz
 ```
-
-This provides:
-- `libpiper.so` - Piper library (stripped)
-- `libonnxruntime.so` - ONNX Runtime (stripped)
-- `espeak-ng-data/` - Phoneme data
 
 ### Building from Source
 
@@ -105,12 +107,12 @@ require_once 'vendor/autoload.php';
 
 use CrazyGoat\PiperTTS\PiperTTS;
 
-// Initialize TTS with pre-built libraries (downloaded from release)
+// Initialize TTS with auto-downloaded libraries
 $piper = new PiperTTS(
     modelsPath:     __DIR__ . '/models',
-    libpiperPath:   __DIR__ . '/piper-libs/libpiper.so',
-    onnxrtPath:     __DIR__ . '/piper-libs/libonnxruntime.so',
-    espeakDataPath: __DIR__ . '/piper-libs/espeak-ng-data',
+    libpiperPath:   __DIR__ . '/vendor/crazy-goat/piper-php/libs/libpiper.so',
+    onnxrtPath:     __DIR__ . '/vendor/crazy-goat/piper-php/libs/libonnxruntime.so',
+    espeakDataPath: __DIR__ . '/vendor/crazy-goat/piper-php/libs/espeak-ng-data',
 );
 
 // Load voice with automatic warm-up (recommended for production)

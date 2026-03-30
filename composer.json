@@ -21,6 +21,9 @@
         "phpstan/phpstan": "2.1.45"
     },
     "scripts": {
+        "post-install-cmd": "@install-libs",
+        "post-update-cmd": "@install-libs",
+        "install-libs": "php scripts/post-install.php",
         "lint": ["phpcs --standard=phpcs.xml.dist", "@rector", "@phpstan"],
         "lint:fix": ["@rector:fix", "phpcbf --standard=phpcs.xml.dist"],
         "phpstan": "phpstan analyse",

@@ -1,125 +1,94 @@
 <?php
 
-declare(strict_types=1);
-
 /**
- * FFI (Foreign Function Interface) allows calling C functions from PHP.
- * 
- * This stub includes both standard FFI methods and Piper-specific C API methods
- * that are loaded via FFI::cdef() from libpiper.so.
+ * PHPStan stub for the FFI class.
+ *
+ * Overrides the built-in FFI stub to add:
+ * - __call() magic method for dynamic C function dispatch via cdef()
+ * - Proper isNull() signature accepting FFI\CData by reference
+ *
+ * FFI instances created via FFI::cdef() expose C functions as dynamic
+ * instance methods. At runtime PHP dispatches these through internal
+ * C-level magic, but PHPStan needs __call() declared to accept them.
  */
-class FFI
+final class FFI
 {
+    public static function cdef(string $code = '', ?string $lib = null): FFI {}
+
+    public static function load(string $filename): ?FFI {}
+
+    public static function scope(string $name): FFI {}
+
     /**
-     * Load shared library with given flags.
-     * 
-     * @param string $filename Path to shared library
-     * @param int $flags RTLD_LAZY=1, RTLD_NOW=2, RTLD_GLOBAL=256, etc.
-     * @return \FFI\CData|null Library handle or null on error
+     * @param FFI\CType|string $type
      */
-    public static function dlopen(string $filename, int $flags): ?\FFI\CData {}
-    
+    public function new(FFI\CType|string $type, bool $owned = true, bool $persistent = false): ?FFI\CData {}
+
+    /** @prefer-ref $ptr */
+    public static function free(FFI\CData $ptr): void {}
+
     /**
-     * Get error message from last dlopen/dlclose call.
-     * 
-     * @return string|null Error message or null if no error
+     * @param FFI\CData|int|float|bool|null $ptr
+     * @prefer-ref $ptr
      */
-    public static function dlerror(): ?string {}
-    
+    public function cast(FFI\CType|string $type, $ptr): ?FFI\CData {}
+
+    public function type(string $type): ?FFI\CType {}
+
+    /** @prefer-ref $ptr */
+    public static function typeof(FFI\CData $ptr): FFI\CType {}
+
     /**
-     * Create FFI object from C definitions.
-     * 
-     * @param string $code C definitions (structs, functions, etc.)
-     * @param string|null $lib Path to shared library (optional)
-     * @return \FFI FFI object with bound functions
+     * @param array<array-key, int<0, max>> $dimensions
      */
-    public static function cdef(string $code, ?string $lib = null): \FFI {}
-    
+    public static function arrayType(FFI\CType $type, array $dimensions): FFI\CType {}
+
+    /** @prefer-ref $ptr */
+    public static function addr(FFI\CData $ptr): FFI\CData {}
+
+    /** @prefer-ref $ptr */
+    public static function sizeof(FFI\CData|FFI\CType $ptr): int {}
+
+    /** @prefer-ref $ptr */
+    public static function alignof(FFI\CData|FFI\CType $ptr): int {}
+
     /**
-     * Check if C data pointer is null.
-     * 
-     * @param \FFI\CData $ptr C data pointer
-     * @return bool True if pointer is null
+     * @param FFI\CData|string $from
+     * @prefer-ref $to
+     * @prefer-ref $from
      */
-    public static function isNull(\FFI\CData $ptr): bool {}
-    
+    public static function memcpy(FFI\CData $to, $from, int $size): void {}
+
     /**
-     * Get address of C data.
-     * 
-     * @param \FFI\CData $ptr C data
-     * @return \FFI\CData Pointer to the data
+     * @param string|FFI\CData $ptr1
+     * @param string|FFI\CData $ptr2
+     * @prefer-ref $ptr1
+     * @prefer-ref $ptr2
      */
-    public static function addr(\FFI\CData $ptr): \FFI\CData {}
-    
+    public static function memcmp($ptr1, $ptr2, int $size): int {}
+
+    /** @prefer-ref $ptr */
+    public static function memset(FFI\CData $ptr, int $value, int $size): void {}
+
+    /** @prefer-ref $ptr */
+    public static function string(FFI\CData $ptr, ?int $size = null): string {}
+
     /**
-     * Allocate new C data of given type.
-     * 
-     * @param string $type C type name
-     * @return \FFI\CData Allocated C data
+     * @param FFI\CData $ptr
+     * @prefer-ref $ptr
      */
-    public static function new(string $type): \FFI\CData {}
-    
+    public static function isNull(FFI\CData $ptr): bool {}
+
     /**
-     * Convert C string to PHP string.
-     * 
-     * @param \FFI\CData $ptr C string pointer
-     * @return string PHP string
+     * Dynamic dispatch for C functions loaded via cdef()/load()/scope().
+     *
+     * At runtime, PHP's FFI dispatches calls to C functions bound by
+     * cdef() through internal C-level magic. This __call declaration
+     * allows PHPStan to accept those dynamic method calls.
+     *
+     * @param string       $name      C function name
+     * @param list<mixed>  $arguments Function arguments
+     * @return mixed Return value from the C function
      */
-    public static function string(\FFI\CData $ptr): string {}
-    
-    /**
-     * Cast C data to different type.
-     * 
-     * @param string $type Target C type
-     * @param \FFI\CData $ptr C data to cast
-     * @return \FFI\CData|null Casted data or null
-     */
-    public static function cast(string $type, \FFI\CData $ptr): ?\FFI\CData {}
-    
-    // Piper C API methods - loaded via FFI::cdef()
-    
-    /**
-     * Create a new Piper synthesizer instance.
-     * 
-     * @param string $model_path Path to ONNX model file
-     * @param string $config_path Path to model config JSON file
-     * @param string $espeak_data_path Path to espeak-ng-data directory
-     * @return \FFI\CData|null Synthesizer handle or null on error
-     */
-    public function piper_create(string $model_path, string $config_path, string $espeak_data_path): ?\FFI\CData {}
-    
-    /**
-     * Free a Piper synthesizer instance.
-     * 
-     * @param \FFI\CData $synth Synthesizer handle
-     * @return void
-     */
-    public function piper_free(\FFI\CData $synth): void {}
-    
-    /**
-     * Get default synthesis options.
-     * 
-     * @param \FFI\CData $synth Synthesizer handle
-     * @return \FFI\CData Options struct with defaults
-     */
-    public function piper_default_synthesize_options(\FFI\CData $synth): \FFI\CData {}
-    
-    /**
-     * Start text synthesis.
-     * 
-     * @param \FFI\CData $synth Synthesizer handle
-     * @param string $text Text to synthesize
-     * @param \FFI\CData $options Synthesis options
-     * @return int 0 on success, non-zero on error
-     */
-    public function piper_synthesize_start(\FFI\CData $synth, string $text, \FFI\CData $options): int {}
-    
-    /**
-     * Get next audio chunk from synthesis.
-     * 
-     * @param \FFI\CData $synth Synthesizer handle
-     * @param \FFI\CData $chunk Audio chunk struct to fill
-     * @return int 0=more chunks, 1=last chunk, -1=error
-     */
-    public function piper_synthesize_next(\FFI\CData $synth, \FFI\CData $chunk): int {}
+    public function __call(string $name, array $arguments): mixed {}
 }
