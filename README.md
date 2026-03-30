@@ -107,13 +107,9 @@ require_once 'vendor/autoload.php';
 
 use CrazyGoat\PiperTTS\PiperTTS;
 
-// Initialize TTS with auto-downloaded libraries
-$piper = new PiperTTS(
-    modelsPath:     __DIR__ . '/models',
-    libpiperPath:   __DIR__ . '/vendor/crazy-goat/piper-php/libs/libpiper.so',
-    onnxrtPath:     __DIR__ . '/vendor/crazy-goat/piper-php/libs/libonnxruntime.so',
-    espeakDataPath: __DIR__ . '/vendor/crazy-goat/piper-php/libs/espeak-ng-data',
-);
+// Libraries are auto-detected from vendor/crazy-goat/piper-php/libs/
+// (downloaded automatically by composer post-install script)
+$piper = new PiperTTS(modelsPath: __DIR__ . '/models');
 
 // Load voice with automatic warm-up (recommended for production)
 $model = $piper->loadModel('en_US-lessac-medium', warmUp: true);
@@ -121,6 +117,19 @@ $model = $piper->loadModel('en_US-lessac-medium', warmUp: true);
 // Synthesize text to WAV
 $wav = $model->speak('Hello! This is Piper text to speech in PHP.');
 file_put_contents('output.wav', $wav);
+```
+
+### Custom Library Paths (Optional)
+
+If you need to use custom library locations:
+
+```php
+$piper = new PiperTTS(
+    modelsPath:     __DIR__ . '/models',
+    libpiperPath:   '/custom/path/libpiper.so',      // optional
+    onnxrtPath:     '/custom/path/libonnxruntime.so', // optional  
+    espeakDataPath: '/custom/path/espeak-ng-data',    // optional
+);
 ```
 
 ## API Reference

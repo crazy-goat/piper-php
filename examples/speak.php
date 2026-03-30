@@ -15,12 +15,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use CrazyGoat\PiperTTS\PiperTTS;
 
-$piper = new PiperTTS(
-    modelsPath:     __DIR__ . '/../models',
-    libpiperPath:   __DIR__ . '/../vendor/crazy-goat/piper-php/libs/libpiper.so',
-    onnxrtPath:     __DIR__ . '/../vendor/crazy-goat/piper-php/libs/libonnxruntime.so',
-    espeakDataPath: __DIR__ . '/../vendor/crazy-goat/piper-php/libs/espeak-ng-data',
-);
+$piper = new PiperTTS(modelsPath: __DIR__ . '/../models');
 
 $text  = $argv[1] ?? 'Hello! This is Piper text to speech, running natively in PHP.';
 $voice = $argv[2] ?? 'en_US-lessac-medium';

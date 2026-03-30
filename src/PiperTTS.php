@@ -143,6 +143,15 @@ final readonly class PiperTTS
 
     private function findLibpiper(): string
     {
+        // First check vendor directory (auto-downloaded libraries)
+        $vendorPath = __DIR__ . '/../libs/libpiper.so';
+        if (is_file($vendorPath)) {
+            $real = realpath($vendorPath);
+            if ($real !== false) {
+                return $real;
+            }
+        }
+
         $candidates = [
             $this->modelsPath . '/../lib/libpiper.so',
             $this->modelsPath . '/../libpiper.so',
@@ -160,13 +169,22 @@ final readonly class PiperTTS
         }
 
         throw new PiperException(
-            "libpiper.so not found. Searched:\n  " . implode("\n  ", $candidates)
-            . "\nPass libpiperPath to the constructor or build libpiper and place it in one of these locations."
+            "libpiper.so not found. Searched:\n  " . implode("\n  ", array_merge([$vendorPath], $candidates))
+            . "\nRun 'composer install' to download pre-built libraries, or pass libpiperPath to the constructor."
         );
     }
 
     private function findOnnxrt(string $libpiperDir): string
     {
+        // First check vendor directory (auto-downloaded libraries)
+        $vendorPath = __DIR__ . '/../libs/libonnxruntime.so';
+        if (is_file($vendorPath)) {
+            $real = realpath($vendorPath);
+            if ($real !== false) {
+                return $real;
+            }
+        }
+
         $candidates = [
             $libpiperDir . '/libonnxruntime.so',
             $libpiperDir . '/lib/libonnxruntime.so',
@@ -183,13 +201,22 @@ final readonly class PiperTTS
         }
 
         throw new PiperException(
-            "libonnxruntime.so not found. Searched:\n  " . implode("\n  ", $candidates)
-            . "\nPass onnxrtPath to the constructor."
+            "libonnxruntime.so not found. Searched:\n  " . implode("\n  ", array_merge([$vendorPath], $candidates))
+            . "\nRun 'composer install' to download pre-built libraries, or pass onnxrtPath to the constructor."
         );
     }
 
     private function findEspeakData(string $libpiperDir): string
     {
+        // First check vendor directory (auto-downloaded libraries)
+        $vendorPath = __DIR__ . '/../libs/espeak-ng-data';
+        if (is_dir($vendorPath)) {
+            $real = realpath($vendorPath);
+            if ($real !== false) {
+                return $real;
+            }
+        }
+
         $candidates = [
             $libpiperDir . '/espeak-ng-data',
             $libpiperDir . '/../espeak-ng-data',
@@ -205,8 +232,9 @@ final readonly class PiperTTS
         }
 
         throw new PiperException(
-            "espeak-ng-data directory not found. Searched:\n  " . implode("\n  ", $candidates)
-            . "\nPass espeakDataPath to the constructor."
+            "espeak-ng-data directory not found. Searched:\n  "
+            . implode("\n  ", array_merge([$vendorPath], $candidates))
+            . "\nRun 'composer install' to download pre-built libraries, or pass espeakDataPath to the constructor."
         );
     }
 }
