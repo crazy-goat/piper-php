@@ -547,6 +547,8 @@ PHP_FUNCTION(onnx_tts_run_multi)
     /* Allocate arrays for input tensors and names */
     OrtValue **input_tensors = (OrtValue**)emalloc(num_inputs * sizeof(OrtValue*));
     char **input_names = (char**)emalloc(num_inputs * sizeof(char*));
+    OrtValue **output_tensors = NULL;
+    char **output_names = NULL;
     
     /* Initialize to NULL */
     memset(input_tensors, 0, num_inputs * sizeof(OrtValue*));
@@ -694,7 +696,7 @@ PHP_FUNCTION(onnx_tts_run_multi)
     } ZEND_HASH_FOREACH_END();
     
     /* Get output names */
-    char **output_names = (char**)emalloc(output_count * sizeof(char*));
+    output_names = (char**)emalloc(output_count * sizeof(char*));
     memset(output_names, 0, output_count * sizeof(char*));
     
     OrtAllocator *allocator = NULL;
@@ -711,7 +713,9 @@ PHP_FUNCTION(onnx_tts_run_multi)
     }
     
     /* Run inference */
-    OrtValue *output_tensor = NULL;
+    output_tensors = (OrtValue**)emalloc(output_count * sizeof(OrtValue*));
+    memset(output_tensors, 0, output_count * sizeof(OrtValue*));
+    
     status = g_ort_api->Run(
         session,
         NULL,
@@ -720,7 +724,7 @@ PHP_FUNCTION(onnx_tts_run_multi)
         num_inputs,
         (const char* const*)output_names,
         output_count,
-        &output_tensor
+        output_tensors
     );
     
     /* Cleanup input tensors and names */
@@ -738,6 +742,12 @@ PHP_FUNCTION(onnx_tts_run_multi)
     g_ort_api->ReleaseMemoryInfo(memory_info);
     
     if (status != NULL) {
+        /* Cleanup output tensors on error */
+        for (size_t i = 0; i < output_count; i++) {
+            if (output_tensors[i]) g_ort_api->ReleaseValue(output_tensors[i]);
+        }
+        efree(output_tensors);
+        
         const char *msg = g_ort_api->GetErrorMessage(status);
         php_error_docref(NULL, E_WARNING, "Inference failed: %s", msg);
         g_ort_api->ReleaseStatus(status);
@@ -746,9 +756,14 @@ PHP_FUNCTION(onnx_tts_run_multi)
     
     /* Extract output data (first output only for simplicity) */
     float *output_data = NULL;
-    status = g_ort_api->GetTensorMutableData(output_tensor, (void**)&output_data);
+    status = g_ort_api->GetTensorMutableData(output_tensors[0], (void**)&output_data);
     if (status != NULL) {
-        g_ort_api->ReleaseValue(output_tensor);
+        /* Cleanup all output tensors */
+        for (size_t i = 0; i < output_count; i++) {
+            if (output_tensors[i]) g_ort_api->ReleaseValue(output_tensors[i]);
+        }
+        efree(output_tensors);
+        
         const char *msg = g_ort_api->GetErrorMessage(status);
         php_error_docref(NULL, E_WARNING, "Failed to get output data: %s", msg);
         g_ort_api->ReleaseStatus(status);
@@ -757,9 +772,13 @@ PHP_FUNCTION(onnx_tts_run_multi)
     
     /* Get output tensor info */
     OrtTensorTypeAndShapeInfo *output_info = NULL;
-    status = g_ort_api->GetTensorTypeAndShape(output_tensor, &output_info);
+    status = g_ort_api->GetTensorTypeAndShape(output_tensors[0], &output_info);
     if (status != NULL) {
-        g_ort_api->ReleaseValue(output_tensor);
+        /* Cleanup all output tensors */
+        for (size_t i = 0; i < output_count; i++) {
+            if (output_tensors[i]) g_ort_api->ReleaseValue(output_tensors[i]);
+        }
+        efree(output_tensors);
         g_ort_api->ReleaseStatus(status);
         RETURN_FALSE;
     }
@@ -784,7 +803,11 @@ PHP_FUNCTION(onnx_tts_run_multi)
         add_next_index_double(return_value, output_data[i]);
     }
     
-    g_ort_api->ReleaseValue(output_tensor);
+    /* Cleanup output tensors */
+    for (size_t i = 0; i < output_count; i++) {
+        if (output_tensors[i]) g_ort_api->ReleaseValue(output_tensors[i]);
+    }
+    efree(output_tensors);
     return;
     
 cleanup:
@@ -794,6 +817,12 @@ cleanup:
     }
     if (input_tensors) efree(input_tensors);
     if (input_names) efree(input_names);
+    if (output_tensors) {
+        for (size_t i = 0; i < output_count; i++) {
+            if (output_tensors[i]) g_ort_api->ReleaseValue(output_tensors[i]);
+        }
+        efree(output_tensors);
+    }
     if (output_names) {
         for (size_t i = 0; i < output_count; i++) {
             if (output_names[i] && allocator) {
