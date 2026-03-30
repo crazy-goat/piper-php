@@ -1,118 +1,80 @@
-# ONNX PHP TTS
+# decodo/piper-tts
 
-PHP library for Text-to-Speech using ONNX models via FFI.
-
-## Features
-
-- Load and run ONNX TTS models (Piper, Coqui, MeloTTS)
-- Simple fluent API
-- Audio export (WAV, MP3, OGG)
-- Model auto-download from HuggingFace
-- Multi-language support
+Text-to-speech in PHP using [Piper](https://github.com/OHF-Voice/piper1-gpl) via FFI.
 
 ## Requirements
 
-- PHP 8.1+
-- FFI extension enabled
-- ONNX Runtime 1.16+
-- mbstring, json extensions
+- PHP 8.1+ with FFI extension
+- Linux x86_64
+- libpiper built from source
+
+## Building libpiper
+
+```bash
+git clone https://github.com/OHF-Voice/piper1-gpl.git
+cd piper1-gpl/libpiper
+mkdir -p build && cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=../install
+make -j$(nproc)
+make install
+```
+
+This produces:
+- `install/libpiper.so`
+- `install/lib/libonnxruntime.so`
+- `install/espeak-ng-data/`
 
 ## Installation
 
 ```bash
-composer require decodo/onnx-tts
+composer require decodo/piper-tts
 ```
 
-Install ONNX Runtime:
+## Download a voice
+
 ```bash
-./vendor/bin/install-ort.sh
-# Or manually download from https://github.com/microsoft/onnxruntime/releases
+# List available voices
+vendor/bin/piper-tts list
+vendor/bin/piper-tts list --language=pl
+
+# Download a voice
+vendor/bin/piper-tts download en_US-lessac-medium ./models
+
+# See what you have locally
+vendor/bin/piper-tts installed ./models
 ```
 
-## Quick Start
+## Usage
 
 ```php
-<?php
-require_once 'vendor/autoload.php';
+use Decodo\PiperTTS\PiperTTS;
 
-use OnnxTTS\OnnxRuntime;
-use OnnxTTS\ModelManager;
-use OnnxTTS\TTS;
+$piper = new PiperTTS('./models');
 
-// Initialize
-$runtime = new OnnxRuntime('/lib/x86_64-linux-gnu/libonnxruntime.so.1.21');
-$manager = new ModelManager(getenv('HOME') . '/.cache/onnx-tts');
-$tts = new TTS($runtime, $manager);
-
-// Download a model (first time only)
-$manager->download('piper-pl');
-
-// Generate speech
-$audio = $tts
-    ->model('piper-pl')
-    ->speed(1.2)
-    ->speak('Witaj świecie!');
-
-// Save to file
-$audio->save('output.wav', 'wav');
-```
-
-## API Reference
-
-### TTS Class
-
-```php
-$tts = new TTS($runtime, $manager);
-
-// Fluent configuration
-$audio = $tts
-    ->model('model-id')           // Select model
-    ->speaker('speaker-id')       // For multi-speaker models
-    ->speed(1.2)                  // 0.5 - 2.0
-    ->language('pl')              // Language hint
-    ->speak('Text to synthesize');
-
-// Save audio
-$audio->save('output.wav', 'wav');
-$audio->save('output.mp3', 'mp3');
-```
-
-### ModelManager
-
-```php
-$manager = new ModelManager($cacheDir);
-
-// List available models
-$models = $manager->listAvailable();
-
-// Download from HuggingFace
-$manager->download('piper-pl', 'huggingface');
-
-// Check if downloaded
-if ($manager->isDownloaded('piper-pl')) {
-    $path = $manager->getPath('piper-pl');
+// List installed voices
+foreach ($piper->voices() as $voice) {
+    echo "{$voice->key} — {$voice->language}, {$voice->quality}\n";
 }
+
+// Synthesize text to WAV
+$wav = $piper->speak('Hello world!', 'en_US-lessac-medium');
+file_put_contents('output.wav', $wav);
+
+// Adjust speed (2.0 = twice as fast)
+$wav = $piper->speak('Fast speech', 'en_US-lessac-medium', speed: 2.0);
 ```
 
-## Supported Models
+If libpiper is not in a standard location, pass the paths explicitly:
 
-### Piper
-- Polish: `piper-pl`
-- English: `piper-en`
-- More at https://huggingface.co/rhasspy/piper-voices
-
-### Coqui TTS
-Coming soon...
-
-### MeloTTS
-Coming soon...
-
-## Testing
-
-```bash
-./vendor/bin/phpunit
+```php
+$piper = new PiperTTS(
+    modelsPath:     './models',
+    libpiperPath:   '/opt/piper/libpiper.so',
+    onnxrtPath:     '/opt/piper/lib/libonnxruntime.so',
+    espeakDataPath: '/opt/piper/espeak-ng-data',
+);
 ```
 
 ## License
 
-MIT
+MIT (this package). Piper itself is GPL-3.0.

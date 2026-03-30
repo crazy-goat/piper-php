@@ -1,0 +1,211 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Find autoloader
+$autoloadPaths = [
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../../autoload.php',
+];
+
+$autoloaded = false;
+foreach ($autoloadPaths as $path) {
+    if (file_exists($path)) {
+        require $path;
+        $autoloaded = true;
+        break;
+    }
+}
+
+if (!$autoloaded) {
+    fwrite(STDERR, "Cannot find composer autoloader. Run: composer install\n");
+    exit(1);
+}
+
+// -------------------------------------------------------------------------
+
+$command = $argv[1] ?? null;
+
+match ($command) {
+    'list' => commandList(array_slice($argv, 2)),
+    'download' => commandDownload(array_slice($argv, 2)),
+    'installed' => commandInstalled(array_slice($argv, 2)),
+    default => usage(),
+};
+
+// -------------------------------------------------------------------------
+
+function usage(): never
+{
+    fwrite(STDERR, <<<'USAGE'
+    Piper TTS — voice model manager
+
+    Usage:
+      piper-tts list [--language=CODE]       List available voices from HuggingFace
+      piper-tts download VOICE_KEY PATH      Download a voice model
+      piper-tts installed PATH               List locally installed voices
+
+    Examples:
+      piper-tts list --language=pl
+      piper-tts download pl_PL-gosia-medium ./models
+      piper-tts installed ./models
+
+    USAGE);
+    exit(1);
+}
+
+function commandList(array $args): void
+{
+    $languageFilter = null;
+    foreach ($args as $arg) {
+        if (str_starts_with($arg, '--language=')) {
+            $languageFilter = substr($arg, strlen('--language='));
+        }
+    }
+
+    $url = 'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/voices.json';
+    $json = @file_get_contents($url);
+    if ($json === false) {
+        fwrite(STDERR, "Failed to fetch voices.json from HuggingFace\n");
+        exit(1);
+    }
+
+    $voices = json_decode($json, true, 32, JSON_THROW_ON_ERROR);
+
+    // Filter by language
+    if ($languageFilter !== null) {
+        $voices = array_filter($voices, function (array $v) use ($languageFilter): bool {
+            return ($v['language']['family'] ?? '') === $languageFilter
+                || ($v['language']['code'] ?? '') === $languageFilter;
+        });
+    }
+
+    if (count($voices) === 0) {
+        echo "No voices found.\n";
+        return;
+    }
+
+    // Print table
+    printf("  %-35s %-12s %-15s %-8s %s\n", 'Key', 'Language', 'Name', 'Quality', 'Speakers');
+    printf("  %s\n", str_repeat('-', 80));
+
+    foreach ($voices as $key => $v) {
+        printf(
+            "  %-35s %-12s %-15s %-8s %d\n",
+            $key,
+            $v['language']['name_english'] ?? '?',
+            $v['name'] ?? '?',
+            $v['quality'] ?? '?',
+            $v['num_speakers'] ?? 1,
+        );
+    }
+
+    printf("\n  Total: %d voices\n", count($voices));
+}
+
+function commandDownload(array $args): void
+{
+    if (count($args) < 2) {
+        fwrite(STDERR, "Usage: piper-tts download VOICE_KEY PATH\n");
+        exit(1);
+    }
+
+    $voiceKey = $args[0];
+    $modelsPath = rtrim($args[1], '/');
+
+    if (!is_dir($modelsPath)) {
+        @mkdir($modelsPath, 0755, true);
+        if (!is_dir($modelsPath)) {
+            fwrite(STDERR, "Cannot create directory: {$modelsPath}\n");
+            exit(1);
+        }
+    }
+
+    // Fetch voices.json to get file paths
+    $url = 'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/voices.json';
+    $json = @file_get_contents($url);
+    if ($json === false) {
+        fwrite(STDERR, "Failed to fetch voices.json from HuggingFace\n");
+        exit(1);
+    }
+
+    $voices = json_decode($json, true, 32, JSON_THROW_ON_ERROR);
+
+    if (!isset($voices[$voiceKey])) {
+        fwrite(STDERR, "Voice not found: {$voiceKey}\n");
+        fwrite(STDERR, "Run 'piper-tts list' to see available voices.\n");
+        exit(1);
+    }
+
+    $voice = $voices[$voiceKey];
+    $baseUrl = 'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/';
+
+    foreach ($voice['files'] as $filePath => $info) {
+        $filename = basename($filePath);
+
+        // Only download .onnx and .onnx.json files
+        if (!str_ends_with($filename, '.onnx') && !str_ends_with($filename, '.onnx.json')) {
+            continue;
+        }
+
+        $destPath = $modelsPath . '/' . $filename;
+        $sizeStr = isset($info['size_bytes']) ? sprintf(' (%.1f MB)', $info['size_bytes'] / 1048576) : '';
+
+        echo "Downloading {$filename}{$sizeStr}... ";
+
+        $data = @file_get_contents($baseUrl . $filePath);
+        if ($data === false) {
+            echo "FAILED\n";
+            fwrite(STDERR, "Failed to download: {$baseUrl}{$filePath}\n");
+            exit(1);
+        }
+
+        file_put_contents($destPath, $data);
+        echo "done\n";
+    }
+}
+
+function commandInstalled(array $args): void
+{
+    if (count($args) < 1) {
+        fwrite(STDERR, "Usage: piper-tts installed PATH\n");
+        exit(1);
+    }
+
+    $modelsPath = rtrim($args[0], '/');
+
+    if (!is_dir($modelsPath)) {
+        fwrite(STDERR, "Directory does not exist: {$modelsPath}\n");
+        exit(1);
+    }
+
+    $files = glob($modelsPath . '/*.onnx');
+    if ($files === false || count($files) === 0) {
+        echo "No models found in {$modelsPath}\n";
+        return;
+    }
+
+    printf("  %-35s %-12s %-15s %s\n", 'Key', 'Language', 'Name', 'Quality');
+    printf("  %s\n", str_repeat('-', 70));
+
+    $count = 0;
+    foreach ($files as $onnxPath) {
+        $jsonPath = $onnxPath . '.json';
+        if (!is_file($jsonPath)) {
+            continue;
+        }
+
+        $key = basename($onnxPath, '.onnx');
+
+        try {
+            $voice = \Decodo\PiperTTS\VoiceInfo::fromConfigFile($key, $jsonPath);
+            printf("  %-35s %-12s %-15s %s\n", $voice->key, $voice->language, $voice->name, $voice->quality);
+            $count++;
+        } catch (\Throwable) {
+            continue;
+        }
+    }
+
+    printf("\n  Total: %d voices\n", $count);
+}

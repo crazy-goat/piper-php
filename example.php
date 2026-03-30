@@ -1,110 +1,44 @@
 <?php
 
-/**
- * Example: Basic TTS usage with ONNX PHP TTS library
- * 
- * This example demonstrates how to:
- * 1. Initialize the ONNX Runtime
- * 2. Set up model management
- * 3. Download and load a TTS model
- * 4. Generate speech from text
- * 5. Save audio to file
- */
+declare(strict_types=1);
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use OnnxTTS\OnnxRuntime;
-use OnnxTTS\ModelManager;
-use OnnxTTS\TTS;
+use Decodo\PiperTTS\PiperTTS;
 
-// Configuration
-$ortLibraryPath = getenv('ORT_LIBRARY') ?: '/lib/x86_64-linux-gnu/libonnxruntime.so.1.21';
-$cacheDirectory = getenv('HOME') . '/.cache/onnx-tts';
+// --- Config (adjust paths to your setup) ---
+$modelsPath     = __DIR__ . '/models';
+$libpiperPath   = __DIR__ . '/piper1-gpl/libpiper/install/libpiper.so';
+$onnxrtPath     = __DIR__ . '/piper1-gpl/libpiper/install/lib/libonnxruntime.so';
+$espeakDataPath = __DIR__ . '/piper1-gpl/libpiper/install/espeak-ng-data';
 
-echo "=== ONNX PHP TTS Example ===\n\n";
+$voice = $argv[1] ?? 'en_US-lessac-medium';
+$text  = $argv[2] ?? 'Hello! This is Piper text to speech, running natively in PHP.';
 
-// Step 1: Initialize ONNX Runtime
-echo "1. Initializing ONNX Runtime...\n";
-try {
-    $runtime = new OnnxRuntime($ortLibraryPath);
-    echo "   ✓ ONNX Runtime loaded (version: " . $runtime->getVersion() . ")\n";
-} catch (\Exception $e) {
-    echo "   ✗ Failed to load ONNX Runtime: " . $e->getMessage() . "\n";
-    echo "   Please install ONNX Runtime: ./scripts/install-ort.sh\n";
-    exit(1);
+// --- Init ---
+$piper = new PiperTTS($modelsPath, $libpiperPath, $onnxrtPath, $espeakDataPath);
+
+// --- Show installed voices ---
+echo "Installed voices:\n";
+foreach ($piper->voices() as $v) {
+    echo "  {$v->key}  ({$v->language}, {$v->quality})\n";
 }
+echo "\n";
 
-// Step 2: Set up ModelManager
-echo "\n2. Setting up ModelManager...\n";
-$manager = new ModelManager($cacheDirectory);
-echo "   ✓ Cache directory: {$cacheDirectory}\n";
+// --- Synthesize ---
+echo "Voice: {$voice}\n";
+echo "Text:  {$text}\n";
 
-// Show available models
-echo "\n3. Checking available models...\n";
-$availableModels = $manager->listAvailable();
-if (empty($availableModels)) {
-    echo "   ℹ No models downloaded yet\n";
-} else {
-    echo "   ✓ Downloaded models:\n";
-    foreach ($availableModels as $model) {
-        echo "     - {$model}\n";
-    }
-}
+$t0 = microtime(true);
+$wav = $piper->speak($text, $voice);
+$elapsed = round(microtime(true) - $t0, 2);
 
-// Show remote models
-echo "\n4. Available models for download:\n";
-$remoteModels = $manager->listRemote();
-foreach ($remoteModels as $id => $info) {
-    echo "   - {$id} (from {$info['repo']})\n";
-}
+$outputFile = __DIR__ . '/output.wav';
+file_put_contents($outputFile, $wav);
 
-// Step 5: Download a model if not present
-$modelId = 'piper-pl';
-echo "\n5. Checking model: {$modelId}\n";
+$size = round(strlen($wav) / 1024, 1);
+$duration = round((strlen($wav) - 44) / 2 / 22050, 2);
 
-if (!$manager->isDownloaded($modelId)) {
-    echo "   ℹ Model not found locally. Downloading...\n";
-    try {
-        $manager->download($modelId);
-        echo "   ✓ Download complete!\n";
-    } catch (\Exception $e) {
-        echo "   ✗ Download failed: " . $e->getMessage() . "\n";
-        exit(1);
-    }
-} else {
-    echo "   ✓ Model already downloaded\n";
-}
-
-// Step 6: Create TTS instance
-echo "\n6. Creating TTS instance...\n";
-$tts = new TTS($runtime, $manager);
-echo "   ✓ TTS ready\n";
-
-// Step 7: Generate speech
-echo "\n7. Generating speech...\n";
-$text = 'Witaj świecie! To jest przykład użycia biblioteki TTS w PHP.';
-echo "   Text: \"{$text}\"\n";
-
-try {
-    $audio = $tts
-        ->model($modelId)
-        ->speed(1.0)
-        ->speak($text);
-    
-    echo "   ✓ Speech generated successfully!\n";
-    echo "   - Duration: " . round($audio->getDuration(), 2) . " seconds\n";
-    echo "   - Sample rate: " . $audio->getSampleRate() . " Hz\n";
-    
-    // Step 8: Save to file
-    $outputFile = 'output.wav';
-    echo "\n8. Saving audio to: {$outputFile}\n";
-    $audio->save($outputFile, 'wav');
-    echo "   ✓ Audio saved successfully!\n";
-    
-} catch (\Exception $e) {
-    echo "   ✗ Error: " . $e->getMessage() . "\n";
-    exit(1);
-}
-
-echo "\n=== Example completed successfully! ===\n";
-echo "Output file: {$outputFile}\n";
+echo "Generated {$duration}s audio in {$elapsed}s ({$size} KB)\n";
+echo "Saved: {$outputFile}\n";
+echo "Play:  aplay {$outputFile}\n";
