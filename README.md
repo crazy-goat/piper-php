@@ -33,24 +33,27 @@ composer require crazy-goat/piper-php
 You can download pre-built libraries from the [latest release](https://github.com/crazy-goat/piper-php/releases/latest):
 
 ```bash
-# Download individual libraries
-wget https://github.com/crazy-goat/piper-php/releases/latest/download/libpiper.so
-wget https://github.com/crazy-goat/piper-php/releases/latest/download/libonnxruntime.so
+# Create directory for libraries
+mkdir -p piper-libs
+cd piper-libs
+
+# Download and extract individual libraries
+wget https://github.com/crazy-goat/piper-php/releases/latest/download/libpiper-linux-x86_64.tar.gz
+wget https://github.com/crazy-goat/piper-php/releases/latest/download/libonnxruntime-linux-x86_64.tar.gz
 wget https://github.com/crazy-goat/piper-php/releases/latest/download/espeak-ng-data.tar.gz
 
-# Extract espeak-ng-data
+# Extract
+tar -xzf libpiper-linux-x86_64.tar.gz
+tar -xzf libonnxruntime-linux-x86_64.tar.gz
 tar -xzf espeak-ng-data.tar.gz
-```
 
-Or download all at once:
-```bash
-wget https://github.com/crazy-goat/piper-php/releases/latest/download/piper-build-linux-x86_64.tar.gz
-tar -xzf piper-build-linux-x86_64.tar.gz -C ./piper-libs
+# Clean up archives
+rm *.tar.gz
 ```
 
 This provides:
-- `libpiper.so` - Piper library
-- `libonnxruntime.so` - ONNX Runtime
+- `libpiper.so` - Piper library (stripped)
+- `libonnxruntime.so` - ONNX Runtime (stripped)
 - `espeak-ng-data/` - Phoneme data
 
 ### Building from Source
