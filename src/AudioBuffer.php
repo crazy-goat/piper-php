@@ -15,6 +15,15 @@ class AudioBuffer
 
     public function __construct(array $data, int $sampleRate, int $channels = 1)
     {
+        if ($sampleRate <= 0) {
+            throw new AudioException("Sample rate must be positive, got: {$sampleRate}");
+        }
+        if ($channels <= 0) {
+            throw new AudioException("Channels must be positive, got: {$channels}");
+        }
+        if (empty($data)) {
+            throw new AudioException("Audio data cannot be empty");
+        }
         $this->data = $data;
         $this->sampleRate = $sampleRate;
         $this->channels = $channels;
@@ -86,16 +95,15 @@ class AudioBuffer
 
     private function floatToPCM16(array $floatData): string
     {
-        $pcmData = '';
+        $parts = [];
         foreach ($floatData as $sample) {
-            // Clamp to [-1.0, 1.0]
             $sample = max(-1.0, min(1.0, $sample));
-            // Convert to 16-bit signed integer
-            $pcm = (int) ($sample * 32767);
-            // Pack as little-endian 16-bit
-            $pcmData .= pack('v', $pcm);
+            $pcm = $sample >= 0
+                ? (int) ($sample * 32767)
+                : (int) ($sample * 32768);
+            $parts[] = pack('v', $pcm & 0xFFFF);
         }
-        return $pcmData;
+        return implode('', $parts);
     }
 
     private function createWavHeader(int $dataSize, int $channels, int $sampleRate, int $bitsPerSample): string

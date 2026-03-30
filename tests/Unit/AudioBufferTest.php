@@ -44,4 +44,34 @@ class AudioBufferTest extends TestCase
 
         unlink($tempFile);
     }
+
+    public function testNegativeFloatValues(): void
+    {
+        $data = [-1.0, -0.5, 0.0, 0.5, 1.0];
+        $buffer = AudioBuffer::fromFloatArray($data, 22050);
+        $wav = $buffer->toWav();
+
+        // Should not throw, should produce valid WAV
+        $this->assertStringStartsWith('RIFF', $wav);
+    }
+
+    public function testInvalidSampleRateThrows(): void
+    {
+        $this->expectException(\OnnxTTS\Exception\AudioException::class);
+        new AudioBuffer([0.0], 0);
+    }
+
+    public function testEmptyDataThrows(): void
+    {
+        $this->expectException(\OnnxTTS\Exception\AudioException::class);
+        new AudioBuffer([], 22050);
+    }
+
+    public function testCompressionException(): void
+    {
+        $buffer = AudioBuffer::fromFloatArray([0.0], 22050);
+
+        $this->expectException(\OnnxTTS\Exception\CompressionException::class);
+        $buffer->toMp3();
+    }
 }

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace OnnxTTS\Exception;
 
-use Exception;
-
 class CompressionException extends AudioException
 {
     public function __construct(string $format, string $reason, int $code = 0, ?\Throwable $previous = null)

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace OnnxTTS\Exception;
 
-use Exception;
-
 class AudioException extends OnnxTTSException
 {
     public function __construct(string $message = '', int $code = 0, ?\Throwable $previous = null)
