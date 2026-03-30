@@ -62,27 +62,20 @@ abstract class TTSModel
         }
         
         $configData = file_get_contents($configPath);
-        $this->config = json_decode($configData, true);
-        
-        if ($this->config === null) {
-            throw new ModelCorruptedException(
-                basename($this->modelDir),
-                'Invalid JSON in config.json'
-            );
-        }
+        $this->config = json_decode($configData, true, 512, JSON_THROW_ON_ERROR);
     }
     
     protected function validateConfig(): void
     {
-        $required = ['model_type'];
+        // Piper uses different config structure - check for audio.sample_rate or num_speakers
+        $hasPiperFields = isset($this->config['audio']['sample_rate']) || 
+                          isset($this->config['num_speakers']);
         
-        foreach ($required as $field) {
-            if (!isset($this->config[$field])) {
-                throw new ModelCorruptedException(
-                    basename($this->modelDir),
-                    "Missing required config field: {$field}"
-                );
-            }
+        if (!$hasPiperFields && !isset($this->config['model_type'])) {
+            throw new ModelCorruptedException(
+                basename($this->modelDir),
+                "Missing required config fields (expected model_type or Piper-specific fields)"
+            );
         }
     }
     

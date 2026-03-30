@@ -68,8 +68,8 @@ class PiperModel extends TTSModel
     
     private function tokenize(string $text): array
     {
-        // Piper uses character-level tokenization
-        // This is a simplified implementation
+        // TODO: Piper uses phoneme-based tokenization via espeak-ng
+        // This character-level tokenization is a placeholder
         $tokens = [];
         
         // Add start token
