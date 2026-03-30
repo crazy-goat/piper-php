@@ -6,3 +6,7 @@ parameters:
         - bin
     excludePaths:
         - piper1-gpl/*
+    ignoreErrors:
+        - '#Call to an undefined method FFI::#'
+        - '#Access to an undefined property FFI\\CData::#'
+        - '#Parameter \#1 \$ptr of static method FFI::isNull\(\) expects FFI\\CData, object given#'
