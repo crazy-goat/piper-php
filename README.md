@@ -2,7 +2,7 @@
 
 Text-to-speech in PHP using [Piper](https://github.com/rhasspy/piper) via FFI.
 
-[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.1-8892BF.svg)](https://php.net/)
+[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Fast, local text-to-speech synthesis without external services. Piper runs entirely on your machine using ONNX Runtime.
@@ -18,7 +18,7 @@ Fast, local text-to-speech synthesis without external services. Piper runs entir
 
 ## Requirements
 
-- PHP >= 8.1 with FFI extension enabled
+- PHP >= 8.2 with FFI extension enabled
 - Piper library (libpiper.so) and ONNX Runtime
 - Voice models (.onnx files)
 
@@ -26,16 +26,8 @@ Fast, local text-to-speech synthesis without external services. Piper runs entir
 
 ```bash
 composer require crazy-goat/piper-php
-```
 
-### Download Pre-built Libraries
-
-After installing the package, download the pre-built libraries:
-
-```bash
-composer require crazy-goat/piper-php
-
-# Download libraries (one command!)
+# Download pre-built libraries
 vendor/bin/piper-tts install-deps
 ```
 
@@ -83,7 +75,6 @@ The build will create:
 - `libs/libpiper.so` - Piper library (copied to project root)
 - `libs/libonnxruntime.so` - ONNX Runtime (with all versioned files)
 - `libs/espeak-ng-data/` - Phoneme data
-- `piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data` - Phoneme data
 
 ### Running Examples Locally
 
@@ -100,7 +91,7 @@ make examples
 php examples/speak.php "Hello world"
 ```
 
-This is equivalent to what `composer install` does automatically.
+This is equivalent to running `vendor/bin/piper-tts install-deps` for composer users.
 
 ### Downloading Voice Models
 
@@ -131,7 +122,7 @@ require_once 'vendor/autoload.php';
 use CrazyGoat\PiperTTS\PiperTTS;
 
 // Libraries are auto-detected from vendor/crazy-goat/piper-php/libs/
-// (downloaded automatically by composer post-install script)
+// (run: vendor/bin/piper-tts install-deps to download)
 $piper = new PiperTTS(modelsPath: __DIR__ . '/models');
 
 // Load voice with automatic warm-up (recommended for production)
