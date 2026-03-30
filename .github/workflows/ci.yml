@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: ffi
+        
+    - name: Check PHP syntax
+      run: |
+        php -l src/*.php
+        php -l src/Exception/*.php
+        php -l examples/*.php
+        php -l bin/piper-tts
+        
+    - name: Validate composer.json
+      run: composer validate --strict
+      
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+
+  build-piper:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential pkg-config
+        
+    - name: Cache build
+      uses: actions/cache@v3
+      with:
+        path: piper1-gpl/libpiper/build
+        key: ${{ runner.os }}-piper-build-${{ hashFiles('piper1-gpl/libpiper/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-piper-build-
+          
+    - name: Build Piper
+      run: make build-libpiper
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: piper-build
+        path: |
+          piper1-gpl/libpiper/build/libpiper.so
+          piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so
+          piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data
+        retention-days: 7
