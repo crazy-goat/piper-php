@@ -7,11 +7,14 @@ parameters:
     excludePaths:
         - piper1-gpl/*
     ignoreErrors:
-        # FFI method calls
+        # FFI method calls - both formats
         - '#Call to an undefined method FFI::#'
-        # FFI property access - both local and CI formats
+        # FFI property access - local format
         - '#Access to an undefined property FFI\\CData::#'
+        # FFI property access - CI format  
         - '#Cannot access property \$.* on FFI\\CData\|null#'
-        # FFI type errors - both local and CI formats  
+        # FFI isNull - local format
         - '#Parameter \#1 \$ptr of static method FFI::isNull\(\) expects FFI\\CData, object given#'
+        # FFI addr - CI format
         - '#Parameter \#1 \$ptr of static method FFI::addr\(\) expects FFI\\CData, FFI\\CData\|null given#'
+    reportUnmatchedIgnoredErrors: false
