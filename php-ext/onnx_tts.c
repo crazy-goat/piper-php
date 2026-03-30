@@ -548,6 +548,10 @@ PHP_FUNCTION(onnx_tts_run_multi)
     OrtValue **input_tensors = (OrtValue**)emalloc(num_inputs * sizeof(OrtValue*));
     char **input_names = (char**)emalloc(num_inputs * sizeof(char*));
     
+    /* Initialize to NULL */
+    memset(input_tensors, 0, num_inputs * sizeof(OrtValue*));
+    memset(input_names, 0, num_inputs * sizeof(char*));
+    
     /* Process each input */
     zval *input_zval;
     uint32_t input_idx = 0;
@@ -691,6 +695,8 @@ PHP_FUNCTION(onnx_tts_run_multi)
     
     /* Get output names */
     char **output_names = (char**)emalloc(output_count * sizeof(char*));
+    memset(output_names, 0, output_count * sizeof(char*));
+    
     OrtAllocator *allocator = NULL;
     g_ort_api->GetAllocatorWithDefaultOptions(&allocator);
     
@@ -786,9 +792,17 @@ cleanup:
     for (uint32_t i = 0; i < input_idx; i++) {
         if (input_tensors[i]) g_ort_api->ReleaseValue(input_tensors[i]);
     }
-    efree(input_tensors);
-    efree(input_names);
-    g_ort_api->ReleaseMemoryInfo(memory_info);
+    if (input_tensors) efree(input_tensors);
+    if (input_names) efree(input_names);
+    if (output_names) {
+        for (size_t i = 0; i < output_count; i++) {
+            if (output_names[i] && allocator) {
+                allocator->Free(allocator, output_names[i]);
+            }
+        }
+        efree(output_names);
+    }
+    if (memory_info) g_ort_api->ReleaseMemoryInfo(memory_info);
     RETURN_FALSE;
 }
 /* }}} */
