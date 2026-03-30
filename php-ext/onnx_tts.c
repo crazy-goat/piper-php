@@ -477,6 +477,322 @@ PHP_FUNCTION(onnx_tts_run)
 }
 /* }}} */
 
+/* {{{ proto array onnx_tts_run_multi(resource session, array inputs)
+   Run inference with multiple inputs (for TTS models)
+   inputs = [
+     ['data' => [...], 'shape' => [...], 'type' => 'int64|float'],
+     ...
+   ]
+*/
+ZEND_BEGIN_ARG_INFO(arginfo_onnx_tts_run_multi, 0)
+    ZEND_ARG_INFO(0, session)
+    ZEND_ARG_ARRAY_INFO(0, inputs, 0)
+ZEND_END_ARG_INFO()
+
+PHP_FUNCTION(onnx_tts_run_multi)
+{
+    zval *session_zval;
+    zval *inputs_array;
+    
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "ra", &session_zval, &inputs_array) == FAILURE) {
+        RETURN_FALSE;
+    }
+    
+    OrtSession *session = (OrtSession*)zend_fetch_resource(Z_RES_P(session_zval), "onnx_session", le_onnx_session);
+    if (!session) {
+        php_error_docref(NULL, E_WARNING, "Invalid session resource");
+        RETURN_FALSE;
+    }
+    
+    /* Get input count */
+    size_t input_count = 0;
+    OrtStatus *status = g_ort_api->SessionGetInputCount(session, &input_count);
+    if (status != NULL || input_count == 0) {
+        if (status) g_ort_api->ReleaseStatus(status);
+        php_error_docref(NULL, E_WARNING, "Model has no inputs");
+        RETURN_FALSE;
+    }
+    
+    /* Get output count */
+    size_t output_count = 0;
+    status = g_ort_api->SessionGetOutputCount(session, &output_count);
+    if (status != NULL || output_count == 0) {
+        if (status) g_ort_api->ReleaseStatus(status);
+        php_error_docref(NULL, E_WARNING, "Model has no outputs");
+        RETURN_FALSE;
+    }
+    
+    /* Count inputs from PHP array */
+    uint32_t num_inputs = zend_hash_num_elements(Z_ARRVAL_P(inputs_array));
+    if (num_inputs == 0) {
+        php_error_docref(NULL, E_WARNING, "Inputs array is empty");
+        RETURN_FALSE;
+    }
+    
+    if (num_inputs != input_count) {
+        php_error_docref(NULL, E_WARNING, "Expected %zu inputs, got %u", input_count, num_inputs);
+        RETURN_FALSE;
+    }
+    
+    /* Create memory info */
+    OrtMemoryInfo *memory_info = NULL;
+    status = g_ort_api->CreateCpuMemoryInfo(OrtArenaAllocator, OrtMemTypeDefault, &memory_info);
+    if (status != NULL) {
+        const char *msg = g_ort_api->GetErrorMessage(status);
+        php_error_docref(NULL, E_WARNING, "Failed to create memory info: %s", msg);
+        g_ort_api->ReleaseStatus(status);
+        RETURN_FALSE;
+    }
+    
+    /* Allocate arrays for input tensors and names */
+    OrtValue **input_tensors = (OrtValue**)emalloc(num_inputs * sizeof(OrtValue*));
+    char **input_names = (char**)emalloc(num_inputs * sizeof(char*));
+    
+    /* Process each input */
+    zval *input_zval;
+    uint32_t input_idx = 0;
+    
+    ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(inputs_array), input_zval) {
+        if (Z_TYPE_P(input_zval) != IS_ARRAY) {
+            php_error_docref(NULL, E_WARNING, "Each input must be an array");
+            goto cleanup;
+        }
+        
+        /* Get data array */
+        zval *data_zval = zend_hash_str_find(Z_ARRVAL_P(input_zval), "data", sizeof("data") - 1);
+        if (!data_zval || Z_TYPE_P(data_zval) != IS_ARRAY) {
+            php_error_docref(NULL, E_WARNING, "Input %u missing 'data' array", input_idx);
+            goto cleanup;
+        }
+        
+        /* Get shape array */
+        zval *shape_zval = zend_hash_str_find(Z_ARRVAL_P(input_zval), "shape", sizeof("shape") - 1);
+        if (!shape_zval || Z_TYPE_P(shape_zval) != IS_ARRAY) {
+            php_error_docref(NULL, E_WARNING, "Input %u missing 'shape' array", input_idx);
+            goto cleanup;
+        }
+        
+        /* Get type (default: float) */
+        zval *type_zval = zend_hash_str_find(Z_ARRVAL_P(input_zval), "type", sizeof("type") - 1);
+        char *type_str = "float";
+        if (type_zval && Z_TYPE_P(type_zval) == IS_STRING) {
+            type_str = Z_STRVAL_P(type_zval);
+        }
+        
+        /* Count data and shape elements */
+        uint32_t num_data = zend_hash_num_elements(Z_ARRVAL_P(data_zval));
+        uint32_t num_dims = zend_hash_num_elements(Z_ARRVAL_P(shape_zval));
+        
+        if (num_data == 0 || num_dims == 0) {
+            php_error_docref(NULL, E_WARNING, "Input %u has empty data or shape", input_idx);
+            goto cleanup;
+        }
+        
+        /* Allocate shape array */
+        int64_t *shape = (int64_t*)emalloc(num_dims * sizeof(int64_t));
+        zval *dim_zval;
+        uint32_t dim_idx = 0;
+        ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(shape_zval), dim_zval) {
+            if (Z_TYPE_P(dim_zval) == IS_LONG) {
+                shape[dim_idx++] = Z_LVAL_P(dim_zval);
+            } else {
+                shape[dim_idx++] = 0;
+            }
+        } ZEND_HASH_FOREACH_END();
+        
+        /* Create tensor based on type */
+        OrtValue *tensor = NULL;
+        
+        if (strcmp(type_str, "int64") == 0) {
+            /* Int64 tensor */
+            int64_t *data = (int64_t*)emalloc(num_data * sizeof(int64_t));
+            zval *val;
+            uint32_t i = 0;
+            ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(data_zval), val) {
+                if (Z_TYPE_P(val) == IS_LONG) {
+                    data[i++] = Z_LVAL_P(val);
+                } else if (Z_TYPE_P(val) == IS_DOUBLE) {
+                    data[i++] = (int64_t)Z_DVAL_P(val);
+                } else {
+                    data[i++] = 0;
+                }
+            } ZEND_HASH_FOREACH_END();
+            
+            status = g_ort_api->CreateTensorWithDataAsOrtValue(
+                memory_info,
+                data,
+                num_data * sizeof(int64_t),
+                shape,
+                num_dims,
+                ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64,
+                &tensor
+            );
+            
+            efree(data);
+        } else {
+            /* Float tensor (default) */
+            float *data = (float*)emalloc(num_data * sizeof(float));
+            zval *val;
+            uint32_t i = 0;
+            ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(data_zval), val) {
+                if (Z_TYPE_P(val) == IS_LONG) {
+                    data[i++] = (float)Z_LVAL_P(val);
+                } else if (Z_TYPE_P(val) == IS_DOUBLE) {
+                    data[i++] = (float)Z_DVAL_P(val);
+                } else {
+                    data[i++] = 0.0f;
+                }
+            } ZEND_HASH_FOREACH_END();
+            
+            status = g_ort_api->CreateTensorWithDataAsOrtValue(
+                memory_info,
+                data,
+                num_data * sizeof(float),
+                shape,
+                num_dims,
+                ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+                &tensor
+            );
+            
+            efree(data);
+        }
+        
+        efree(shape);
+        
+        if (status != NULL) {
+            const char *msg = g_ort_api->GetErrorMessage(status);
+            php_error_docref(NULL, E_WARNING, "Failed to create tensor for input %u: %s", input_idx, msg);
+            g_ort_api->ReleaseStatus(status);
+            goto cleanup;
+        }
+        
+        input_tensors[input_idx] = tensor;
+        
+        /* Get input name from model */
+        OrtAllocator *allocator = NULL;
+        status = g_ort_api->GetAllocatorWithDefaultOptions(&allocator);
+        if (status != NULL) {
+            const char *msg = g_ort_api->GetErrorMessage(status);
+            php_error_docref(NULL, E_WARNING, "Failed to get allocator: %s", msg);
+            g_ort_api->ReleaseStatus(status);
+            goto cleanup;
+        }
+        
+        status = g_ort_api->SessionGetInputName(session, input_idx, allocator, &input_names[input_idx]);
+        if (status != NULL) {
+            const char *msg = g_ort_api->GetErrorMessage(status);
+            php_error_docref(NULL, E_WARNING, "Failed to get input name %u: %s", input_idx, msg);
+            g_ort_api->ReleaseStatus(status);
+            goto cleanup;
+        }
+        
+        input_idx++;
+    } ZEND_HASH_FOREACH_END();
+    
+    /* Get output names */
+    char **output_names = (char**)emalloc(output_count * sizeof(char*));
+    OrtAllocator *allocator = NULL;
+    g_ort_api->GetAllocatorWithDefaultOptions(&allocator);
+    
+    for (size_t i = 0; i < output_count; i++) {
+        status = g_ort_api->SessionGetOutputName(session, i, allocator, &output_names[i]);
+        if (status != NULL) {
+            const char *msg = g_ort_api->GetErrorMessage(status);
+            php_error_docref(NULL, E_WARNING, "Failed to get output name %zu: %s", i, msg);
+            g_ort_api->ReleaseStatus(status);
+            goto cleanup;
+        }
+    }
+    
+    /* Run inference */
+    OrtValue *output_tensor = NULL;
+    status = g_ort_api->Run(
+        session,
+        NULL,
+        (const char* const*)input_names,
+        (const OrtValue* const*)input_tensors,
+        num_inputs,
+        (const char* const*)output_names,
+        output_count,
+        &output_tensor
+    );
+    
+    /* Cleanup input tensors and names */
+    for (uint32_t i = 0; i < num_inputs; i++) {
+        if (input_tensors[i]) g_ort_api->ReleaseValue(input_tensors[i]);
+        if (input_names[i]) allocator->Free(allocator, input_names[i]);
+    }
+    for (size_t i = 0; i < output_count; i++) {
+        if (output_names[i]) allocator->Free(allocator, output_names[i]);
+    }
+    efree(input_tensors);
+    efree(input_names);
+    efree(output_names);
+    
+    g_ort_api->ReleaseMemoryInfo(memory_info);
+    
+    if (status != NULL) {
+        const char *msg = g_ort_api->GetErrorMessage(status);
+        php_error_docref(NULL, E_WARNING, "Inference failed: %s", msg);
+        g_ort_api->ReleaseStatus(status);
+        RETURN_FALSE;
+    }
+    
+    /* Extract output data (first output only for simplicity) */
+    float *output_data = NULL;
+    status = g_ort_api->GetTensorMutableData(output_tensor, (void**)&output_data);
+    if (status != NULL) {
+        g_ort_api->ReleaseValue(output_tensor);
+        const char *msg = g_ort_api->GetErrorMessage(status);
+        php_error_docref(NULL, E_WARNING, "Failed to get output data: %s", msg);
+        g_ort_api->ReleaseStatus(status);
+        RETURN_FALSE;
+    }
+    
+    /* Get output tensor info */
+    OrtTensorTypeAndShapeInfo *output_info = NULL;
+    status = g_ort_api->GetTensorTypeAndShape(output_tensor, &output_info);
+    if (status != NULL) {
+        g_ort_api->ReleaseValue(output_tensor);
+        g_ort_api->ReleaseStatus(status);
+        RETURN_FALSE;
+    }
+    
+    /* Get output dimensions */
+    size_t output_num_dims = 0;
+    g_ort_api->GetDimensionsCount(output_info, &output_num_dims);
+    int64_t *output_dims = (int64_t*)emalloc(output_num_dims * sizeof(int64_t));
+    g_ort_api->GetDimensions(output_info, output_dims, output_num_dims);
+    g_ort_api->ReleaseTensorTypeAndShapeInfo(output_info);
+    
+    /* Calculate total output size */
+    size_t output_size = 1;
+    for (size_t i = 0; i < output_num_dims; i++) {
+        output_size *= output_dims[i];
+    }
+    efree(output_dims);
+    
+    /* Create PHP array with output data */
+    array_init(return_value);
+    for (size_t i = 0; i < output_size; i++) {
+        add_next_index_double(return_value, output_data[i]);
+    }
+    
+    g_ort_api->ReleaseValue(output_tensor);
+    return;
+    
+cleanup:
+    /* Cleanup on error */
+    for (uint32_t i = 0; i < input_idx; i++) {
+        if (input_tensors[i]) g_ort_api->ReleaseValue(input_tensors[i]);
+    }
+    efree(input_tensors);
+    efree(input_names);
+    g_ort_api->ReleaseMemoryInfo(memory_info);
+    RETURN_FALSE;
+}
+/* }}} */
+
 /* {{{ proto bool onnx_tts_save_wav(string filename, array audio_data, int sample_rate)
    Save audio data as WAV file */
 ZEND_BEGIN_ARG_INFO(arginfo_onnx_tts_save_wav, 0)
@@ -490,52 +806,47 @@ PHP_FUNCTION(onnx_tts_save_wav)
     char *filename;
     size_t filename_len;
     zval *audio_array;
-    zend_long sample_rate = 24000;  // Default 24kHz
+    zend_long sample_rate = 24000;
     
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "sa|l", &filename, &filename_len, &audio_array, &sample_rate) == FAILURE) {
         RETURN_FALSE;
     }
     
-    /* Count audio samples */
     uint32_t num_samples = zend_hash_num_elements(Z_ARRVAL_P(audio_array));
     if (num_samples == 0) {
         php_error_docref(NULL, E_WARNING, "Audio array is empty");
         RETURN_FALSE;
     }
     
-    /* Open file for writing */
     FILE *fp = fopen(filename, "wb");
     if (!fp) {
-        php_error_docref(NULL, E_WARNING, "Failed to open file for writing: %s", filename);
+        php_error_docref(NULL, E_WARNING, "Failed to open file: %s", filename);
         RETURN_FALSE;
     }
     
-    /* WAV header constants */
-    uint16_t audio_format = 1;      // PCM
-    uint16_t num_channels = 1;    // Mono
-    uint16_t bits_per_sample = 16; // 16-bit
+    uint16_t audio_format = 1;
+    uint16_t num_channels = 1;
+    uint16_t bits_per_sample = 16;
     uint32_t byte_rate = sample_rate * num_channels * bits_per_sample / 8;
     uint16_t block_align = num_channels * bits_per_sample / 8;
     uint32_t data_size = num_samples * num_channels * bits_per_sample / 8;
     uint32_t file_size = 36 + data_size;
     
-    /* Write WAV header */
-    fwrite("RIFF", 1, 4, fp);                    // Chunk ID
-    fwrite(&file_size, 4, 1, fp);                // Chunk size
-    fwrite("WAVE", 1, 4, fp);                    // Format
-    fwrite("fmt ", 1, 4, fp);                    // Subchunk1 ID
+    fwrite("RIFF", 1, 4, fp);
+    fwrite(&file_size, 4, 1, fp);
+    fwrite("WAVE", 1, 4, fp);
+    fwrite("fmt ", 1, 4, fp);
     uint32_t subchunk1_size = 16;
-    fwrite(&subchunk1_size, 4, 1, fp);          // Subchunk1 size
-    fwrite(&audio_format, 2, 1, fp);            // Audio format
-    fwrite(&num_channels, 2, 1, fp);            // Number of channels
-    fwrite(&sample_rate, 4, 1, fp);             // Sample rate
-    fwrite(&byte_rate, 4, 1, fp);               // Byte rate
-    fwrite(&block_align, 2, 1, fp);              // Block align
-    fwrite(&bits_per_sample, 2, 1, fp);          // Bits per sample
-    fwrite("data", 1, 4, fp);                    // Subchunk2 ID
-    fwrite(&data_size, 4, 1, fp);              // Subchunk2 size
+    fwrite(&subchunk1_size, 4, 1, fp);
+    fwrite(&audio_format, 2, 1, fp);
+    fwrite(&num_channels, 2, 1, fp);
+    fwrite(&sample_rate, 4, 1, fp);
+    fwrite(&byte_rate, 4, 1, fp);
+    fwrite(&block_align, 2, 1, fp);
+    fwrite(&bits_per_sample, 2, 1, fp);
+    fwrite("data", 1, 4, fp);
+    fwrite(&data_size, 4, 1, fp);
     
-    /* Convert float audio data to 16-bit PCM and write */
     zval *val;
     ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(audio_array), val) {
         float sample = 0.0f;
@@ -545,19 +856,14 @@ PHP_FUNCTION(onnx_tts_save_wav)
             sample = (float)Z_DVAL_P(val);
         }
         
-        /* Clamp to [-1.0, 1.0] */
         if (sample > 1.0f) sample = 1.0f;
         if (sample < -1.0f) sample = -1.0f;
         
-        /* Convert to 16-bit signed integer */
         int16_t pcm_sample = (int16_t)(sample * 32767.0f);
-        
-        /* Write as little-endian */
         fwrite(&pcm_sample, 2, 1, fp);
     } ZEND_HASH_FOREACH_END();
     
     fclose(fp);
-    
     RETURN_TRUE;
 }
 /* }}} */
@@ -568,6 +874,7 @@ const zend_function_entry onnx_tts_functions[] = {
     PHP_FE(onnx_tts_load_model, arginfo_onnx_tts_load_model)
     PHP_FE(onnx_tts_get_model_info, arginfo_onnx_tts_get_model_info)
     PHP_FE(onnx_tts_run, arginfo_onnx_tts_run)
+    PHP_FE(onnx_tts_run_multi, arginfo_onnx_tts_run_multi)
     PHP_FE(onnx_tts_save_wav, arginfo_onnx_tts_save_wav)
     PHP_FE_END
 };
