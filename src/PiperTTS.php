@@ -109,6 +109,9 @@ final class PiperTTS
     /**
      * Synthesize text to WAV audio.
      *
+     * Collects all audio chunks and returns a complete WAV file.
+     * For streaming, use speakStreaming() instead.
+     *
      * @param string $text      Text to speak
      * @param string $voice     Voice key (e.g. "pl_PL-gosia-medium")
      * @param float  $speed     Speech speed multiplier (1.0 = normal, 2.0 = twice as fast)
@@ -117,6 +120,32 @@ final class PiperTTS
      * @return string Raw WAV file bytes
      */
     public function speak(string $text, string $voice, float $speed = 1.0, int $speakerId = 0): string
+    {
+        $pcmData = '';
+        $sampleRate = 0;
+
+        foreach ($this->speakStreaming($text, $voice, $speed, $speakerId) as $chunk) {
+            $pcmData .= $chunk->pcmData;
+            $sampleRate = $chunk->sampleRate;
+        }
+
+        return $this->buildWav($pcmData, $sampleRate);
+    }
+
+    /**
+     * Synthesize text to audio, yielding chunks as they are generated.
+     *
+     * Each chunk contains raw 16-bit PCM data for one sentence/segment.
+     * This allows streaming audio to a client before synthesis is complete.
+     *
+     * @param string $text      Text to speak
+     * @param string $voice     Voice key (e.g. "pl_PL-gosia-medium")
+     * @param float  $speed     Speech speed multiplier (1.0 = normal, 2.0 = twice as fast)
+     * @param int    $speakerId Speaker ID for multi-speaker models (0 = default)
+     *
+     * @return \Generator<int, AudioChunk>
+     */
+    public function speakStreaming(string $text, string $voice, float $speed = 1.0, int $speakerId = 0): \Generator
     {
         if ($text === '') {
             throw new PiperException('Text cannot be empty');
@@ -132,22 +161,23 @@ final class PiperTTS
             throw new PiperException("Voice config not found: {$configPath}");
         }
 
-        // Create synthesizer
         $synth = $this->piper->piper_create($modelPath, $configPath, $this->resolvedEspeakDataPath);
         if (FFI::isNull($synth)) {
             throw new PiperException("piper_create failed for voice: {$voice}");
         }
 
         try {
-            return $this->synthesize($synth, $text, $speed, $speakerId);
+            yield from $this->generateChunks($synth, $text, $speed, $speakerId);
         } finally {
             $this->piper->piper_free($synth);
         }
     }
 
-    private function synthesize(FFI\CData $synth, string $text, float $speed, int $speakerId): string
+    /**
+     * @return \Generator<int, AudioChunk>
+     */
+    private function generateChunks(FFI\CData $synth, string $text, float $speed, int $speakerId): \Generator
     {
-        // Get default options and apply overrides
         $options = $this->piper->piper_default_synthesize_options($synth);
         $options->speaker_id = $speakerId;
 
@@ -155,15 +185,11 @@ final class PiperTTS
             $options->length_scale = 1.0 / $speed;
         }
 
-        // Start synthesis
         $rc = $this->piper->piper_synthesize_start($synth, $text, FFI::addr($options));
         if ($rc !== 0) {
             throw new PiperException("piper_synthesize_start failed (rc={$rc})");
         }
 
-        // Collect audio chunks
-        $pcmData = '';
-        $sampleRate = 0;
         $chunk = $this->piper->new('piper_audio_chunk');
 
         while (true) {
@@ -173,8 +199,8 @@ final class PiperTTS
                 throw new PiperException('piper_synthesize_next failed');
             }
 
-            $sampleRate = $chunk->sample_rate;
             $numSamples = $chunk->num_samples;
+            $pcmData = '';
 
             for ($i = 0; $i < $numSamples; $i++) {
                 $sample = $chunk->samples[$i];
@@ -186,12 +212,14 @@ final class PiperTTS
                 $pcmData .= pack('v', ((int)($sample * 32767)) & 0xFFFF);
             }
 
-            if ($rc === 1) { // PIPER_DONE
+            $isLast = $rc === 1;
+
+            yield new AudioChunk($pcmData, $chunk->sample_rate, $isLast);
+
+            if ($isLast) {
                 break;
             }
         }
-
-        return $this->buildWav($pcmData, $sampleRate);
     }
 
     private function buildWav(string $pcmData, int $sampleRate): string
