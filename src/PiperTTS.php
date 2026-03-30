@@ -71,6 +71,149 @@ final class PiperTTS
         $this->piper = FFI::cdef(self::CDEF, $libpiperPath);
     }
 
+    /**
+     * List locally installed voices by scanning the models directory.
+     *
+     * @return VoiceInfo[]
+     */
+    public function voices(): array
+    {
+        $voices = [];
+        $glob = glob($this->modelsPath . '/*.onnx');
+
+        if ($glob === false) {
+            return [];
+        }
+
+        foreach ($glob as $onnxPath) {
+            $jsonPath = $onnxPath . '.json';
+            if (!is_file($jsonPath)) {
+                continue;
+            }
+
+            $key = basename($onnxPath, '.onnx');
+
+            try {
+                $voices[] = VoiceInfo::fromConfigFile($key, $jsonPath);
+            } catch (\Throwable) {
+                // Skip models with invalid/unreadable config
+                continue;
+            }
+        }
+
+        usort($voices, fn(VoiceInfo $a, VoiceInfo $b) => $a->key <=> $b->key);
+
+        return $voices;
+    }
+
+    /**
+     * Synthesize text to WAV audio.
+     *
+     * @param string $text      Text to speak
+     * @param string $voice     Voice key (e.g. "pl_PL-gosia-medium")
+     * @param float  $speed     Speech speed multiplier (1.0 = normal, 2.0 = twice as fast)
+     * @param int    $speakerId Speaker ID for multi-speaker models (0 = default)
+     *
+     * @return string Raw WAV file bytes
+     */
+    public function speak(string $text, string $voice, float $speed = 1.0, int $speakerId = 0): string
+    {
+        if ($text === '') {
+            throw new PiperException('Text cannot be empty');
+        }
+
+        $modelPath = $this->modelsPath . '/' . $voice . '.onnx';
+        $configPath = $modelPath . '.json';
+
+        if (!is_file($modelPath)) {
+            throw new PiperException("Voice model not found: {$modelPath}");
+        }
+        if (!is_file($configPath)) {
+            throw new PiperException("Voice config not found: {$configPath}");
+        }
+
+        // Create synthesizer
+        $synth = $this->piper->piper_create($modelPath, $configPath, $this->resolvedEspeakDataPath);
+        if (FFI::isNull($synth)) {
+            throw new PiperException("piper_create failed for voice: {$voice}");
+        }
+
+        try {
+            return $this->synthesize($synth, $text, $speed, $speakerId);
+        } finally {
+            $this->piper->piper_free($synth);
+        }
+    }
+
+    private function synthesize(FFI\CData $synth, string $text, float $speed, int $speakerId): string
+    {
+        // Get default options and apply overrides
+        $options = $this->piper->piper_default_synthesize_options($synth);
+        $options->speaker_id = $speakerId;
+
+        if ($speed > 0.0 && $speed !== 1.0) {
+            $options->length_scale = 1.0 / $speed;
+        }
+
+        // Start synthesis
+        $rc = $this->piper->piper_synthesize_start($synth, $text, FFI::addr($options));
+        if ($rc !== 0) {
+            throw new PiperException("piper_synthesize_start failed (rc={$rc})");
+        }
+
+        // Collect audio chunks
+        $pcmData = '';
+        $sampleRate = 0;
+        $chunk = $this->piper->new('piper_audio_chunk');
+
+        while (true) {
+            $rc = $this->piper->piper_synthesize_next($synth, FFI::addr($chunk));
+
+            if ($rc === -1) {
+                throw new PiperException('piper_synthesize_next failed');
+            }
+
+            $sampleRate = $chunk->sample_rate;
+            $numSamples = $chunk->num_samples;
+
+            for ($i = 0; $i < $numSamples; $i++) {
+                $sample = $chunk->samples[$i];
+                if ($sample > 1.0) {
+                    $sample = 1.0;
+                } elseif ($sample < -1.0) {
+                    $sample = -1.0;
+                }
+                $pcmData .= pack('v', ((int)($sample * 32767)) & 0xFFFF);
+            }
+
+            if ($rc === 1) { // PIPER_DONE
+                break;
+            }
+        }
+
+        return $this->buildWav($pcmData, $sampleRate);
+    }
+
+    private function buildWav(string $pcmData, int $sampleRate): string
+    {
+        $dataSize = strlen($pcmData);
+
+        return 'RIFF'
+            . pack('V', 36 + $dataSize)   // file size - 8
+            . 'WAVE'
+            . 'fmt '
+            . pack('V', 16)               // subchunk1 size
+            . pack('v', 1)                // PCM format
+            . pack('v', 1)                // mono
+            . pack('V', $sampleRate)      // sample rate
+            . pack('V', $sampleRate * 2)  // byte rate (16-bit mono)
+            . pack('v', 2)                // block align
+            . pack('v', 16)               // bits per sample
+            . 'data'
+            . pack('V', $dataSize)
+            . $pcmData;
+    }
+
     private function findLibpiper(): string
     {
         $candidates = [
