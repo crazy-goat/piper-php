@@ -1,0 +1,40 @@
+<?php
+/**
+ * Simple text-to-speech: text → WAV file.
+ *
+ * Usage:
+ *   php examples/speak.php
+ *   php examples/speak.php "Custom text"
+ *   php examples/speak.php "Cześć!" pl_PL-gosia-medium
+ */
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use Decodo\PiperTTS\PiperTTS;
+
+$piper = new PiperTTS(
+    modelsPath:     __DIR__ . '/../models',
+    libpiperPath:   __DIR__ . '/../piper1-gpl/libpiper/install/libpiper.so',
+    onnxrtPath:     __DIR__ . '/../piper1-gpl/libpiper/install/lib/libonnxruntime.so',
+    espeakDataPath: __DIR__ . '/../piper1-gpl/libpiper/install/espeak-ng-data',
+);
+
+$text  = $argv[1] ?? 'Hello! This is Piper text to speech, running natively in PHP.';
+$voice = $argv[2] ?? 'en_US-lessac-medium';
+$output = __DIR__ . '/../output.wav';
+
+echo "Voice: {$voice}\n";
+echo "Text:  {$text}\n\n";
+
+$t0 = microtime(true);
+$wav = $piper->speak($text, $voice);
+$elapsed = round(microtime(true) - $t0, 2);
+
+file_put_contents($output, $wav);
+
+$duration = round((strlen($wav) - 44) / 2 / 22050, 2);
+echo "Generated {$duration}s audio in {$elapsed}s\n";
+echo "Saved: {$output}\n";
+echo "Play:  aplay {$output}\n";
