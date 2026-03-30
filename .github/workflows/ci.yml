@@ -93,8 +93,10 @@ jobs:
       run: |
         # Package individual libraries as tar.gz
         tar -czf libpiper-linux-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        # Package all onnxruntime files (follow symlinks and include all versions)
-        cd piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib && tar -czf ../../../../../../../libonnxruntime-linux-x86_64.tar.gz libonnxruntime.so* && cd -
+        # Package all onnxruntime files (all .so files including symlinks and versioned files)
+        pushd piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib
+        tar -czf "$OLDPWD/libonnxruntime-linux-x86_64.tar.gz" libonnxruntime*.so*
+        popd
         tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install espeak-ng-data
         
     - name: Upload to Release
