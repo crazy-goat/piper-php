@@ -93,7 +93,8 @@ jobs:
       run: |
         # Package individual libraries as tar.gz
         tar -czf libpiper-linux-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        tar -czf libonnxruntime-linux-x86_64.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib libonnxruntime.so
+        # Package all onnxruntime files (including versioned .so files)
+        tar -czf libonnxruntime-linux-x86_64.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib --dereference libonnxruntime.so libonnxruntime.so.*
         tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install espeak-ng-data
         
     - name: Upload to Release
