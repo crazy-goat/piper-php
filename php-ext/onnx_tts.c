@@ -544,15 +544,17 @@ PHP_FUNCTION(onnx_tts_run_multi)
         RETURN_FALSE;
     }
     
-    /* Allocate arrays for input tensors and names */
+    /* Allocate arrays for input tensors, names, and data pointers */
     OrtValue **input_tensors = (OrtValue**)emalloc(num_inputs * sizeof(OrtValue*));
     char **input_names = (char**)emalloc(num_inputs * sizeof(char*));
+    void **input_data_ptrs = (void**)emalloc(num_inputs * sizeof(void*)); /* Store data pointers for cleanup */
     OrtValue **output_tensors = NULL;
     char **output_names = NULL;
     
     /* Initialize to NULL */
     memset(input_tensors, 0, num_inputs * sizeof(OrtValue*));
     memset(input_names, 0, num_inputs * sizeof(char*));
+    memset(input_data_ptrs, 0, num_inputs * sizeof(void*));
     
     /* Process each input */
     zval *input_zval;
@@ -634,7 +636,8 @@ PHP_FUNCTION(onnx_tts_run_multi)
                 &tensor
             );
             
-            efree(data);
+            /* Store data pointer for later cleanup - DON'T FREE NOW! */
+            input_data_ptrs[input_idx] = data;
         } else {
             /* Float tensor (default) */
             float *data = (float*)emalloc(num_data * sizeof(float));
@@ -727,16 +730,19 @@ PHP_FUNCTION(onnx_tts_run_multi)
         output_tensors
     );
     
-    /* Cleanup input tensors and names */
+    /* Cleanup input tensors, names, and data */
     for (uint32_t i = 0; i < num_inputs; i++) {
         if (input_tensors[i]) g_ort_api->ReleaseValue(input_tensors[i]);
         if (input_names[i]) allocator->Free(allocator, input_names[i]);
+        /* Free input data buffers */
+        if (input_data_ptrs[i]) efree(input_data_ptrs[i]);
     }
     for (size_t i = 0; i < output_count; i++) {
         if (output_names[i]) allocator->Free(allocator, output_names[i]);
     }
     efree(input_tensors);
     efree(input_names);
+    efree(input_data_ptrs);
     efree(output_names);
     
     g_ort_api->ReleaseMemoryInfo(memory_info);
@@ -814,9 +820,12 @@ cleanup:
     /* Cleanup on error */
     for (uint32_t i = 0; i < input_idx; i++) {
         if (input_tensors[i]) g_ort_api->ReleaseValue(input_tensors[i]);
+        /* Free input data buffers */
+        if (input_data_ptrs && input_data_ptrs[i]) efree(input_data_ptrs[i]);
     }
     if (input_tensors) efree(input_tensors);
     if (input_names) efree(input_names);
+    if (input_data_ptrs) efree(input_data_ptrs);
     if (output_tensors) {
         for (size_t i = 0; i < output_count; i++) {
             if (output_tensors[i]) g_ort_api->ReleaseValue(output_tensors[i]);

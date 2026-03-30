@@ -1,0 +1,3 @@
+[submodule "kitten-tts-repo"]
+	path = kitten-tts-repo
+	url = https://github.com/KittenML/KittenTTS.git
