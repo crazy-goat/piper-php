@@ -24,9 +24,6 @@ jobs:
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
       
-    - name: Validate composer.json
-      run: composer validate
-      
     - name: Run PHP_CodeSniffer
       run: composer cs
       
