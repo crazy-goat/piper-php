@@ -2,11 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Decodo\PiperTTS;
+namespace CrazyGoat\PiperTTS;
 
-use Decodo\PiperTTS\Exception\PiperException;
+use CrazyGoat\PiperTTS\Exception\PiperException;
 use FFI;
 
+/**
+ * Factory class for loading Piper TTS models.
+ * 
+ * Manages library paths and creates LoadedModel instances.
+ */
 final class PiperTTS
 {
     private FFI $piper;
@@ -60,15 +65,46 @@ final class PiperTTS
         $this->resolvedEspeakDataPath = $espeakDataPath ?? $this->findEspeakData(dirname($libpiperPath));
 
         // Load onnxruntime with RTLD_GLOBAL so libpiper can find it.
-        // FFI::cdef() uses RTLD_LAZY by default which doesn't expose symbols globally,
-        // so we use dlopen() directly with RTLD_LAZY|RTLD_GLOBAL.
         $dl = FFI::cdef('void *dlopen(const char *filename, int flags); char *dlerror(void);');
         $handle = $dl->dlopen($this->resolvedOnnxrtPath, 1 | 256); // RTLD_LAZY=1, RTLD_GLOBAL=256
-        if (FFI::isNull($handle)) {
+        if ($handle === null || (is_object($handle) && FFI::isNull($handle))) {
             throw new PiperException('Failed to load onnxruntime: ' . FFI::string($dl->dlerror()));
         }
 
         $this->piper = FFI::cdef(self::CDEF, $libpiperPath);
+    }
+
+    /**
+     * Load a voice model.
+     *
+     * @param string $voice   Voice key (e.g. "pl_PL-gosia-medium")
+     * @param bool   $warmUp  Whether to warm up the model immediately (avoids first-chunk delay)
+     * @return LoadedModel
+     */
+    public function loadModel(string $voice, bool $warmUp = false): LoadedModel
+    {
+        $modelPath = $this->modelsPath . '/' . $voice . '.onnx';
+        $configPath = $modelPath . '.json';
+
+        if (!is_file($modelPath)) {
+            throw new PiperException("Voice model not found: {$modelPath}");
+        }
+        if (!is_file($configPath)) {
+            throw new PiperException("Voice config not found: {$configPath}");
+        }
+
+        $synth = $this->piper->piper_create($modelPath, $configPath, $this->resolvedEspeakDataPath);
+        if (FFI::isNull($synth)) {
+            throw new PiperException("piper_create failed for voice: {$voice}");
+        }
+
+        $model = new LoadedModel($this->piper, $synth, $voice);
+
+        if ($warmUp) {
+            $model->warmUp();
+        }
+
+        return $model;
     }
 
     /**
@@ -104,142 +140,6 @@ final class PiperTTS
         usort($voices, fn(VoiceInfo $a, VoiceInfo $b) => $a->key <=> $b->key);
 
         return $voices;
-    }
-
-    /**
-     * Synthesize text to WAV audio.
-     *
-     * Collects all audio chunks and returns a complete WAV file.
-     * For streaming, use speakStreaming() instead.
-     *
-     * @param string $text      Text to speak
-     * @param string $voice     Voice key (e.g. "pl_PL-gosia-medium")
-     * @param float  $speed     Speech speed multiplier (1.0 = normal, 2.0 = twice as fast)
-     * @param int    $speakerId Speaker ID for multi-speaker models (0 = default)
-     *
-     * @return string Raw WAV file bytes
-     */
-    public function speak(string $text, string $voice, float $speed = 1.0, int $speakerId = 0): string
-    {
-        $pcmData = '';
-        $sampleRate = 0;
-
-        foreach ($this->speakStreaming($text, $voice, $speed, $speakerId) as $chunk) {
-            $pcmData .= $chunk->pcmData;
-            $sampleRate = $chunk->sampleRate;
-        }
-
-        return $this->buildWav($pcmData, $sampleRate);
-    }
-
-    /**
-     * Synthesize text to audio, yielding chunks as they are generated.
-     *
-     * Each chunk contains raw 16-bit PCM data for one sentence/segment.
-     * This allows streaming audio to a client before synthesis is complete.
-     *
-     * @param string $text      Text to speak
-     * @param string $voice     Voice key (e.g. "pl_PL-gosia-medium")
-     * @param float  $speed     Speech speed multiplier (1.0 = normal, 2.0 = twice as fast)
-     * @param int    $speakerId Speaker ID for multi-speaker models (0 = default)
-     *
-     * @return \Generator<int, AudioChunk>
-     */
-    public function speakStreaming(string $text, string $voice, float $speed = 1.0, int $speakerId = 0): \Generator
-    {
-        if ($text === '') {
-            throw new PiperException('Text cannot be empty');
-        }
-
-        $modelPath = $this->modelsPath . '/' . $voice . '.onnx';
-        $configPath = $modelPath . '.json';
-
-        if (!is_file($modelPath)) {
-            throw new PiperException("Voice model not found: {$modelPath}");
-        }
-        if (!is_file($configPath)) {
-            throw new PiperException("Voice config not found: {$configPath}");
-        }
-
-        $synth = $this->piper->piper_create($modelPath, $configPath, $this->resolvedEspeakDataPath);
-        if (FFI::isNull($synth)) {
-            throw new PiperException("piper_create failed for voice: {$voice}");
-        }
-
-        try {
-            yield from $this->generateChunks($synth, $text, $speed, $speakerId);
-        } finally {
-            $this->piper->piper_free($synth);
-        }
-    }
-
-    /**
-     * @return \Generator<int, AudioChunk>
-     */
-    private function generateChunks(FFI\CData $synth, string $text, float $speed, int $speakerId): \Generator
-    {
-        $options = $this->piper->piper_default_synthesize_options($synth);
-        $options->speaker_id = $speakerId;
-
-        if ($speed > 0.0 && $speed !== 1.0) {
-            $options->length_scale = 1.0 / $speed;
-        }
-
-        $rc = $this->piper->piper_synthesize_start($synth, $text, FFI::addr($options));
-        if ($rc !== 0) {
-            throw new PiperException("piper_synthesize_start failed (rc={$rc})");
-        }
-
-        $chunk = $this->piper->new('piper_audio_chunk');
-
-        while (true) {
-            $rc = $this->piper->piper_synthesize_next($synth, FFI::addr($chunk));
-
-            if ($rc === -1) {
-                throw new PiperException('piper_synthesize_next failed');
-            }
-
-            $numSamples = $chunk->num_samples;
-            $pcmData = '';
-
-            for ($i = 0; $i < $numSamples; $i++) {
-                $sample = $chunk->samples[$i];
-                if ($sample > 1.0) {
-                    $sample = 1.0;
-                } elseif ($sample < -1.0) {
-                    $sample = -1.0;
-                }
-                $pcmData .= pack('v', ((int)($sample * 32767)) & 0xFFFF);
-            }
-
-            $isLast = $rc === 1;
-
-            yield new AudioChunk($pcmData, $chunk->sample_rate, $isLast);
-
-            if ($isLast) {
-                break;
-            }
-        }
-    }
-
-    private function buildWav(string $pcmData, int $sampleRate): string
-    {
-        $dataSize = strlen($pcmData);
-
-        return 'RIFF'
-            . pack('V', 36 + $dataSize)   // file size - 8
-            . 'WAVE'
-            . 'fmt '
-            . pack('V', 16)               // subchunk1 size
-            . pack('v', 1)                // PCM format
-            . pack('v', 1)                // mono
-            . pack('V', $sampleRate)      // sample rate
-            . pack('V', $sampleRate * 2)  // byte rate (16-bit mono)
-            . pack('v', 2)                // block align
-            . pack('v', 16)               // bits per sample
-            . 'data'
-            . pack('V', $dataSize)
-            . $pcmData;
     }
 
     private function findLibpiper(): string

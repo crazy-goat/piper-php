@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Decodo\PiperTTS\Exception;
+namespace CrazyGoat\PiperTTS\Exception;
 
 use RuntimeException;
 

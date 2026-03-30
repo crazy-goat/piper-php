@@ -15,13 +15,13 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use Decodo\PiperTTS\PiperTTS;
+use CrazyGoat\PiperTTS\PiperTTS;
 
 $piper = new PiperTTS(
     modelsPath:     __DIR__ . '/../models',
-    libpiperPath:   __DIR__ . '/../piper1-gpl/libpiper/install/libpiper.so',
-    onnxrtPath:     __DIR__ . '/../piper1-gpl/libpiper/install/lib/libonnxruntime.so',
-    espeakDataPath: __DIR__ . '/../piper1-gpl/libpiper/install/espeak-ng-data',
+    libpiperPath:   __DIR__ . '/../piper1-gpl/libpiper/build/libpiper.so',
+    onnxrtPath:     __DIR__ . '/../piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so',
+    espeakDataPath: __DIR__ . '/../piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data',
 );
 
 $text  = $argv[1] ?? 'This is the first sentence. Here comes the second one. And finally, the third sentence!';
@@ -31,34 +31,49 @@ $output = __DIR__ . '/../output.wav';
 echo "Voice: {$voice}\n";
 echo "Text:  {$text}\n\n";
 
+// Measure model loading
+$t0 = microtime(true);
+$model = $piper->loadModel($voice);
+$loadTime = round((microtime(true) - $t0) * 1000);
+echo "Model loaded in {$loadTime}ms\n\n";
+
 // Stream chunks — each chunk is one sentence of audio
 $allPcm = '';
 $sampleRate = 0;
 $chunkNum = 0;
-$t0 = microtime(true);
+$totalGenTime = 0;
+$lastChunkTime = microtime(true);
 
-foreach ($piper->speakStreaming($text, $voice) as $chunk) {
+foreach ($model->speakStreaming($text) as $chunk) {
     $chunkNum++;
     $sampleRate = $chunk->sampleRate;
     $ms = $sampleRate > 0 ? round(strlen($chunk->pcmData) / 2 / $sampleRate * 1000) : 0;
-    $elapsed = round((microtime(true) - $t0) * 1000);
+    
+    // Measure time since last chunk (generation time for this chunk)
+    $now = microtime(true);
+    if ($chunkNum === 1) {
+        $chunkGenTime = round(($now - $t0) * 1000);
+    } else {
+        $chunkGenTime = round(($now - $lastChunkTime) * 1000);
+    }
+    $lastChunkTime = $now;
+    $totalGenTime += $chunkGenTime;
 
     printf(
-        "  Chunk %d: %5d bytes, %4dms audio, at %dms %s\n",
+        "  Chunk %d: %5d bytes, %4dms audio, generated in %3dms %s\n",
         $chunkNum,
         strlen($chunk->pcmData),
         $ms,
-        $elapsed,
+        $chunkGenTime,
         $chunk->isLast ? '(last)' : '',
     );
 
     $allPcm .= $chunk->pcmData;
 }
 
-$totalElapsed = round(microtime(true) - $t0, 2);
 $duration = $sampleRate > 0 ? round(strlen($allPcm) / 2 / $sampleRate, 2) : 0;
 
-echo "\nTotal: {$duration}s audio in {$chunkNum} chunks, synthesized in {$totalElapsed}s\n";
+echo "\nTotal: {$duration}s audio in {$chunkNum} chunks, generated in {$totalGenTime}ms\n";
 
 // Save combined WAV
 $dataSize = strlen($allPcm);

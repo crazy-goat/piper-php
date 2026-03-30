@@ -1,5 +1,5 @@
 {
-    "name": "decodo/piper-tts",
+    "name": "crazy-goat/piper-php",
     "description": "Text-to-speech in PHP using Piper via FFI",
     "type": "library",
     "license": "MIT",
@@ -9,7 +9,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Decodo\\PiperTTS\\": "src/"
+            "CrazyGoat\\PiperTTS\\": "src/"
         }
     },
     "bin": ["bin/piper-tts"]

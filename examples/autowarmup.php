@@ -1,11 +1,13 @@
 <?php
 /**
- * Simple text-to-speech: text → WAV file.
+ * Text-to-speech with auto warm-up on model load.
+ *
+ * This is the simplest API for production use - warm-up happens automatically.
  *
  * Usage:
- *   php examples/speak.php
- *   php examples/speak.php "Custom text"
- *   php examples/speak.php "Cześć!" pl_PL-gosia-medium
+ *   php examples/autowarmup.php
+ *   php examples/autowarmup.php "Custom text"
+ *   php examples/autowarmup.php "Cześć!" pl_PL-gosia-medium
  */
 
 declare(strict_types=1);
@@ -21,20 +23,20 @@ $piper = new PiperTTS(
     espeakDataPath: __DIR__ . '/../piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data',
 );
 
-$text  = $argv[1] ?? 'Hello! This is Piper text to speech, running natively in PHP.';
+$text  = $argv[1] ?? 'Hello! This is Piper with automatic warm-up.';
 $voice = $argv[2] ?? 'en_US-lessac-medium';
 $output = __DIR__ . '/../output.wav';
 
 echo "Voice: {$voice}\n";
 echo "Text:  {$text}\n\n";
 
-// Measure model loading
+// Load model with automatic warm-up (no first-chunk delay!)
 $t0 = microtime(true);
-$model = $piper->loadModel($voice);
-$loadTime = round((microtime(true) - $t0) * 1000);
-echo "Model loaded in {$loadTime}ms\n";
+$model = $piper->loadModel($voice, warmUp: true);
+$totalTime = round((microtime(true) - $t0) * 1000);
+echo "Model loaded and warmed up in {$totalTime}ms\n";
 
-// Measure generation
+// Now synthesis is fast from the first call
 $t0 = microtime(true);
 $wav = $model->speak($text);
 $genTime = round((microtime(true) - $t0) * 1000);

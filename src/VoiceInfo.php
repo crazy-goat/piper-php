@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Decodo\PiperTTS;
+namespace CrazyGoat\PiperTTS;
 
 final readonly class VoiceInfo
 {

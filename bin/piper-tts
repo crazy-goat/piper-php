@@ -64,7 +64,7 @@ function commandList(array $args): void
         }
     }
 
-    $url = 'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/voices.json';
+    $url = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/voices.json';
     $json = @file_get_contents($url);
     if ($json === false) {
         fwrite(STDERR, "Failed to fetch voices.json from HuggingFace\n");
@@ -123,7 +123,7 @@ function commandDownload(array $args): void
     }
 
     // Fetch voices.json to get file paths
-    $url = 'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/voices.json';
+    $url = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/voices.json';
     $json = @file_get_contents($url);
     if ($json === false) {
         fwrite(STDERR, "Failed to fetch voices.json from HuggingFace\n");
@@ -139,7 +139,7 @@ function commandDownload(array $args): void
     }
 
     $voice = $voices[$voiceKey];
-    $baseUrl = 'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/';
+    $baseUrl = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/';
 
     foreach ($voice['files'] as $filePath => $info) {
         $filename = basename($filePath);
@@ -199,7 +199,7 @@ function commandInstalled(array $args): void
         $key = basename($onnxPath, '.onnx');
 
         try {
-            $voice = \Decodo\PiperTTS\VoiceInfo::fromConfigFile($key, $jsonPath);
+            $voice = \CrazyGoat\PiperTTS\VoiceInfo::fromConfigFile($key, $jsonPath);
             printf("  %-35s %-12s %-15s %s\n", $voice->key, $voice->language, $voice->name, $voice->quality);
             $count++;
         } catch (\Throwable) {
