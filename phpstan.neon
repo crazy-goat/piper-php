@@ -6,9 +6,3 @@ parameters:
         - bin
     excludePaths:
         - piper1-gpl/*
-    ignoreErrors:
-        # FFI uses dynamic method calls that static analysis cannot understand
-        # These are legitimate FFI calls to C library functions
-        - '#Call to an undefined method FFI::#'
-        - '#Access to an undefined property FFI\\CData::#'
-        - '#Parameter \#1 \$ptr of static method FFI::isNull\(\) expects FFI\\CData, object given#'
