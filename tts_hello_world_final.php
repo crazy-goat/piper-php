@@ -66,26 +66,27 @@ echo "   ✓ Długość: " . count($tokens) . "\n\n";
 // Przygotuj inputy dla modelu
 echo "3. Przygotowanie inputów...\n";
 
-// Konwertuj tokeny na float (model wymaga float, nie int64)
-$tokens_float = [];
+// Konwertuj tokeny na int64
+$tokens_int = [];
 foreach ($tokens as $token) {
-    $tokens_float[] = (float)$token;
+    $tokens_int[] = (int)$token;
 }
 
+// Kolejność: tokens (int64), speaker (int64), speed (float)
 $inputs = [
-    // Input 1: tokeny tekstu (float)
+    // Input 1: tokeny tekstu (int64) - shape [1, 100]
     [
-        'data' => $tokens_float,
-        'shape' => [1, count($tokens_float)],
-        'type' => 'float'
+        'data' => $tokens_int,
+        'shape' => [1, count($tokens_int)],
+        'type' => 'int64'
     ],
-    // Input 2: speaker ID (int64)
+    // Input 2: speaker ID (int64) - shape [1]
     [
         'data' => [$voice_id],
         'shape' => [1],
         'type' => 'int64'
     ],
-    // Input 3: speed (float)
+    // Input 3: speed (float) - shape [1]
     [
         'data' => [$speed],
         'shape' => [1],
@@ -93,9 +94,9 @@ $inputs = [
     ]
 ];
 
-echo "   ✓ Input 1: " . count($tokens_float) . " tokenów (float)\n";
-echo "   ✓ Input 2: Speaker ID $voice_id (int64)\n";
-echo "   ✓ Input 3: Speed $speed (float)\n\n";
+echo "   ✓ Input 1: " . count($tokens_int) . " tokenów (int64) shape [1, " . count($tokens_int) . "]\n";
+echo "   ✓ Input 2: Speaker ID $voice_id (int64) shape [1]\n";
+echo "   ✓ Input 3: Speed $speed (float) shape [1]\n\n";
 
 // Uruchom inferencję
 echo "4. Generowanie audio (to może potrwać 10-30 sekund)...\n";
