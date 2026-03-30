@@ -477,12 +477,98 @@ PHP_FUNCTION(onnx_tts_run)
 }
 /* }}} */
 
+/* {{{ proto bool onnx_tts_save_wav(string filename, array audio_data, int sample_rate)
+   Save audio data as WAV file */
+ZEND_BEGIN_ARG_INFO(arginfo_onnx_tts_save_wav, 0)
+    ZEND_ARG_INFO(0, filename)
+    ZEND_ARG_ARRAY_INFO(0, audio_data, 0)
+    ZEND_ARG_INFO(0, sample_rate)
+ZEND_END_ARG_INFO()
+
+PHP_FUNCTION(onnx_tts_save_wav)
+{
+    char *filename;
+    size_t filename_len;
+    zval *audio_array;
+    zend_long sample_rate = 24000;  // Default 24kHz
+    
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "sa|l", &filename, &filename_len, &audio_array, &sample_rate) == FAILURE) {
+        RETURN_FALSE;
+    }
+    
+    /* Count audio samples */
+    uint32_t num_samples = zend_hash_num_elements(Z_ARRVAL_P(audio_array));
+    if (num_samples == 0) {
+        php_error_docref(NULL, E_WARNING, "Audio array is empty");
+        RETURN_FALSE;
+    }
+    
+    /* Open file for writing */
+    FILE *fp = fopen(filename, "wb");
+    if (!fp) {
+        php_error_docref(NULL, E_WARNING, "Failed to open file for writing: %s", filename);
+        RETURN_FALSE;
+    }
+    
+    /* WAV header constants */
+    uint16_t audio_format = 1;      // PCM
+    uint16_t num_channels = 1;    // Mono
+    uint16_t bits_per_sample = 16; // 16-bit
+    uint32_t byte_rate = sample_rate * num_channels * bits_per_sample / 8;
+    uint16_t block_align = num_channels * bits_per_sample / 8;
+    uint32_t data_size = num_samples * num_channels * bits_per_sample / 8;
+    uint32_t file_size = 36 + data_size;
+    
+    /* Write WAV header */
+    fwrite("RIFF", 1, 4, fp);                    // Chunk ID
+    fwrite(&file_size, 4, 1, fp);                // Chunk size
+    fwrite("WAVE", 1, 4, fp);                    // Format
+    fwrite("fmt ", 1, 4, fp);                    // Subchunk1 ID
+    uint32_t subchunk1_size = 16;
+    fwrite(&subchunk1_size, 4, 1, fp);          // Subchunk1 size
+    fwrite(&audio_format, 2, 1, fp);            // Audio format
+    fwrite(&num_channels, 2, 1, fp);            // Number of channels
+    fwrite(&sample_rate, 4, 1, fp);             // Sample rate
+    fwrite(&byte_rate, 4, 1, fp);               // Byte rate
+    fwrite(&block_align, 2, 1, fp);              // Block align
+    fwrite(&bits_per_sample, 2, 1, fp);          // Bits per sample
+    fwrite("data", 1, 4, fp);                    // Subchunk2 ID
+    fwrite(&data_size, 4, 1, fp);              // Subchunk2 size
+    
+    /* Convert float audio data to 16-bit PCM and write */
+    zval *val;
+    ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(audio_array), val) {
+        float sample = 0.0f;
+        if (Z_TYPE_P(val) == IS_LONG) {
+            sample = (float)Z_LVAL_P(val);
+        } else if (Z_TYPE_P(val) == IS_DOUBLE) {
+            sample = (float)Z_DVAL_P(val);
+        }
+        
+        /* Clamp to [-1.0, 1.0] */
+        if (sample > 1.0f) sample = 1.0f;
+        if (sample < -1.0f) sample = -1.0f;
+        
+        /* Convert to 16-bit signed integer */
+        int16_t pcm_sample = (int16_t)(sample * 32767.0f);
+        
+        /* Write as little-endian */
+        fwrite(&pcm_sample, 2, 1, fp);
+    } ZEND_HASH_FOREACH_END();
+    
+    fclose(fp);
+    
+    RETURN_TRUE;
+}
+/* }}} */
+
 /* {{{ onnx_tts_functions[] */
 const zend_function_entry onnx_tts_functions[] = {
     PHP_FE(onnx_tts_version, arginfo_onnx_tts_version)
     PHP_FE(onnx_tts_load_model, arginfo_onnx_tts_load_model)
     PHP_FE(onnx_tts_get_model_info, arginfo_onnx_tts_get_model_info)
     PHP_FE(onnx_tts_run, arginfo_onnx_tts_run)
+    PHP_FE(onnx_tts_save_wav, arginfo_onnx_tts_save_wav)
     PHP_FE_END
 };
 /* }}} */
