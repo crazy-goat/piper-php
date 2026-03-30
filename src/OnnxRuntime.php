@@ -8,78 +8,109 @@ use FFI;
 use OnnxTTS\Exception\OnnxRuntimeException;
 use OnnxTTS\FFI\OnnxRuntimeFFI;
 
+/**
+ * ONNX Runtime wrapper for PHP
+ * 
+ * Provides a PHP-friendly interface to ONNX Runtime through FFI.
+ * Uses a C wrapper library that handles the vtable API internally.
+ */
 class OnnxRuntime
 {
     private FFI $ffi;
-    private $api;
     private $env;
-
-    public function __construct(string $libraryPath)
+    
+    /**
+     * Constructor
+     * 
+     * @param string $libraryPath Kept for API compatibility, actual library path is handled by wrapper
+     */
+    public function __construct(string $libraryPath = '')
     {
         $this->ffi = OnnxRuntimeFFI::get($libraryPath);
-        $this->api = OnnxRuntimeFFI::getApi();
         $this->initializeEnvironment();
     }
-
+    
+    /**
+     * Initialize ONNX Runtime environment
+     */
     private function initializeEnvironment(): void
     {
         $envPtr = $this->ffi->new('void*[1]');
-        $status = ($this->api->CreateEnv)(0, 'onnx-tts', $envPtr);
-
+        $status = $this->ffi->ort_create_env(0, 'onnx-tts', $envPtr);
+        
         if ($status !== null) {
             $this->handleError($status);
         }
-
+        
         $this->env = $envPtr[0];
     }
-
+    
+    /**
+     * Create inference session from model file
+     * 
+     * @param string $modelPath Path to ONNX model file
+     * @return OrtSession Session object
+     * @throws OnnxRuntimeException If session creation fails
+     */
     public function createSession(string $modelPath): OrtSession
     {
         $optionsPtr = $this->ffi->new('void*[1]');
-        $status = ($this->api->CreateSessionOptions)($optionsPtr);
-
+        $status = $this->ffi->ort_create_session_options($optionsPtr);
+        
         if ($status !== null) {
             $this->handleError($status);
         }
-
+        
         $options = $optionsPtr[0];
-
+        
         $sessionPtr = $this->ffi->new('void*[1]');
-        $status = ($this->api->CreateSession)(
+        $status = $this->ffi->ort_create_session(
             $this->env,
             $modelPath,
             $options,
             $sessionPtr
         );
-
-        ($this->api->ReleaseSessionOptions)($options);
-
+        
+        $this->ffi->ort_release_session_options($options);
+        
         if ($status !== null) {
             $this->handleError($status);
         }
-
-        return new OrtSession($this->ffi, $this->api, $sessionPtr[0]);
+        
+        return new OrtSession($this->ffi, $sessionPtr[0]);
     }
-
+    
+    /**
+     * Get ONNX Runtime version string
+     * 
+     * @return string Version string (e.g., "1.21.0")
+     */
     public function getVersion(): string
     {
-        $version = ($this->api->GetVersionString)();
-
-        return FFI::string($version);
+        return $this->ffi->ort_get_version();
     }
-
+    
+    /**
+     * Destructor - cleanup environment
+     */
     public function __destruct()
     {
         if ($this->env !== null) {
-            ($this->api->ReleaseEnv)($this->env);
+            $this->ffi->ort_release_env($this->env);
         }
     }
-
+    
+    /**
+     * Handle error status from ONNX Runtime
+     * 
+     * @param mixed $status Error status pointer
+     * @throws OnnxRuntimeException Always throws with error message
+     */
     private function handleError($status): void
     {
-        $message = ($this->api->GetErrorMessage)($status);
-        $errorMsg = FFI::string($message);
-        ($this->api->ReleaseStatus)($status);
+        $message = $this->ffi->ort_get_error_message($status);
+        $errorMsg = $message;
+        $this->ffi->ort_release_status($status);
         throw new OnnxRuntimeException($errorMsg);
     }
 }

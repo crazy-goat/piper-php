@@ -11,7 +11,7 @@
  * 5. Save audio to file
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 use OnnxTTS\OnnxRuntime;
 use OnnxTTS\ModelManager;
