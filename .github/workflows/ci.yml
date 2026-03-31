@@ -48,14 +48,16 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y cmake build-essential pkg-config
         
-    - name: Cache build
-      uses: actions/cache@v3
-      with:
-        path: piper1-gpl/libpiper/build
-        key: ${{ runner.os }}-glibc-piper-build-v3-${{ hashFiles('piper1-gpl/libpiper/CMakeLists.txt') }}
-          
     - name: Build Piper
-      run: make build-libpiper
+      run: |
+        make build-libpiper 2>&1 | tee build.log
+        exit_code=$?
+        if [ $exit_code -ne 0 ]; then
+          echo "=== BUILD FAILED ==="
+          cat build.log
+          exit $exit_code
+        fi
+      shell: bash
       
     - name: Strip debug symbols
       run: |
@@ -64,9 +66,8 @@ jobs:
       
     - name: Package build artifacts
       run: |
-        tar -czf libpiper-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        cd piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib
-        tar -czf ../../../../../libonnxruntime-linux-musl-x86_64.tar.gz libonnxruntime*.so*
+        tar -czf libpiper-linux-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
+        tar -czf libonnxruntime-linux-x86_64.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib libonnxruntime*.so*
         tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install espeak-ng-data
         
     - name: Upload build artifacts
@@ -103,12 +104,6 @@ jobs:
       with:
         submodules: recursive
         
-    - name: Cache build
-      uses: actions/cache@v3
-      with:
-        path: piper1-gpl/libpiper/build
-        key: ${{ runner.os }}-musl-piper-build-v3-${{ hashFiles('piper1-gpl/libpiper/CMakeLists.txt') }}
-          
     - name: Build Piper
       run: make build-libpiper
       
@@ -120,8 +115,7 @@ jobs:
     - name: Package build artifacts
       run: |
         tar -czf libpiper-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        cd piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib
-        tar -czf ../../../../../libonnxruntime-linux-musl-x86_64.tar.gz libonnxruntime*.so*
+        tar -czf libonnxruntime-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib libonnxruntime*.so*
         
     - name: Upload packaged artifacts
       uses: actions/upload-artifact@v4
