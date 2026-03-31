@@ -69,7 +69,7 @@ jobs:
     - name: Package build artifacts
       run: |
         tar -czf libpiper-linux-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        mkdir -p /tmp/onnx && find piper1-gpl/libpiper/build -name "libonnxruntime*.so*" -type f -exec cp {} /tmp/onnx/ \; && tar -czf libonnxruntime-linux-x86_64.tar.gz -C /tmp/onnx .
+        mkdir -p /tmp/onnx && cp -L piper1-gpl/libpiper/build/onnxruntime/lib/libonnxruntime*.so* /tmp/onnx/ && tar -czf libonnxruntime-linux-x86_64.tar.gz -C /tmp/onnx .
         tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install espeak-ng-data
         
     - name: Upload build artifacts
@@ -117,7 +117,7 @@ jobs:
     - name: Package build artifacts
       run: |
         tar -czf libpiper-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        mkdir -p /tmp/onnx && find piper1-gpl/libpiper/build -name "libonnxruntime*.so*" -type f -exec cp {} /tmp/onnx/ \; && tar -czf libonnxruntime-linux-musl-x86_64.tar.gz -C /tmp/onnx .
+        mkdir -p /tmp/onnx && cp -L piper1-gpl/libpiper/build/onnxruntime/lib/libonnxruntime*.so* /tmp/onnx/ && tar -czf libonnxruntime-linux-musl-x86_64.tar.gz -C /tmp/onnx .
         
     - name: Upload packaged artifacts
       uses: actions/upload-artifact@v4
