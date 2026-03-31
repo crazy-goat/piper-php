@@ -34,76 +34,9 @@ jobs:
     - name: Run Rector (dry-run)
       run: composer rector
 
-  test-unit:
-    runs-on: ubuntu-latest
-    needs: lint
-    
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: ffi
-        
-    - name: Install dependencies
-      run: composer update --prefer-dist --no-progress
-      
-    - name: Run unit tests
-      run: vendor/bin/phpunit --testsuite unit
-
-  test-integration:
-    runs-on: ubuntu-latest
-    needs: lint
-    
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: ffi
-        
-    - name: Install dependencies
-      run: composer update --prefer-dist --no-progress
-        
-    - name: Install build dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cmake build-essential pkg-config
-        
-    - name: Cache build
-      uses: actions/cache@v3
-      with:
-        path: piper1-gpl/libpiper/build
-        key: ${{ runner.os }}-piper-build-${{ hashFiles('piper1-gpl/libpiper/CMakeLists.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-piper-build-
-          
-    - name: Build libraries
-      run: make build-libs
-      
-    - name: Cache voice model
-      uses: actions/cache@v4
-      with:
-        path: models/
-        key: voice-model-en-us-lessac-low-v1
-        
-    - name: Download test voice model
-      run: make test-model
-      
-    - name: Run integration tests
-      run: vendor/bin/phpunit --group integration
-
   build-piper:
     runs-on: ubuntu-latest
-    needs: [test-unit, test-integration]
+    needs: lint
     
     steps:
     - uses: actions/checkout@v4
@@ -139,16 +72,6 @@ jobs:
         popd
         tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install espeak-ng-data
         
-    - name: Upload to Release
-      if: startsWith(github.ref, 'refs/tags/v')
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}" || true
-        gh release upload ${{ github.ref_name }} libpiper-linux-x86_64.tar.gz --clobber
-        gh release upload ${{ github.ref_name }} libonnxruntime-linux-x86_64.tar.gz --clobber
-        gh release upload ${{ github.ref_name }} espeak-ng-data.tar.gz --clobber
-        
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -158,3 +81,97 @@ jobs:
           piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so
           piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data
         retention-days: 7
+
+    - name: Upload packaged artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: piper-release
+        path: |
+          libpiper-linux-x86_64.tar.gz
+          libonnxruntime-linux-x86_64.tar.gz
+          espeak-ng-data.tar.gz
+        retention-days: 7
+
+  test-unit:
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: ffi
+        
+    - name: Install dependencies
+      run: composer update --prefer-dist --no-progress
+      
+    - name: Run unit tests
+      run: vendor/bin/phpunit --testsuite unit
+
+  test-integration:
+    runs-on: ubuntu-latest
+    needs: [lint, build-piper]
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: ffi
+        
+    - name: Install dependencies
+      run: composer update --prefer-dist --no-progress
+        
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: piper-build
+        path: piper1-gpl/libpiper/build
+        
+    - name: Copy libraries to libs/
+      run: |
+        mkdir -p libs
+        cp piper1-gpl/libpiper/build/libpiper.so libs/
+        cp piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so* libs/
+        cp -r piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data libs/
+        
+    - name: Cache voice model
+      uses: actions/cache@v4
+      with:
+        path: models/
+        key: voice-model-en-us-lessac-low-v1
+        
+    - name: Download test voice model
+      run: make test-model
+      
+    - name: Run integration tests
+      run: vendor/bin/phpunit --group integration
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [test-unit, test-integration]
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Download release artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: piper-release
+        
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}" || true
+        gh release upload ${{ github.ref_name }} libpiper-linux-x86_64.tar.gz --clobber
+        gh release upload ${{ github.ref_name }} libonnxruntime-linux-x86_64.tar.gz --clobber
+        gh release upload ${{ github.ref_name }} espeak-ng-data.tar.gz --clobber
