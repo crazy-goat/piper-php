@@ -1,6 +1,6 @@
 # Piper PHP
 
-Text-to-speech in PHP using [Piper](https://github.com/rhasspy/piper) via FFI.
+Text-to-speech in PHP using [Piper](https://github.com/OHF-Voice/piper1-gpl) via FFI.
 
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
