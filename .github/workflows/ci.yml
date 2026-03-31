@@ -62,7 +62,7 @@ jobs:
     - name: Strip debug symbols
       run: |
         strip --strip-debug piper1-gpl/libpiper/build/libpiper.so
-        strip --strip-debug piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so
+        find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} +
       
     - name: Package build artifacts
       run: |
@@ -98,13 +98,13 @@ jobs:
     container: alpine:3.18
     
     steps:
+    - name: Install git and build dependencies
+      run: |
+        apk add --no-cache cmake build-base git linux-headers pkgconfig
+        
     - uses: actions/checkout@v4
       with:
         submodules: recursive
-        
-    - name: Install build dependencies
-      run: |
-        apk add --no-cache cmake build-base git linux-headers pkgconfig
         
     - name: Cache build
       uses: actions/cache@v3
@@ -120,7 +120,7 @@ jobs:
     - name: Strip debug symbols
       run: |
         strip --strip-debug piper1-gpl/libpiper/build/libpiper.so
-        strip --strip-debug piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so
+        find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} +
       
     - name: Package build artifacts
       run: |
