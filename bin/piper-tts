@@ -218,6 +218,33 @@ function commandInstallDeps(array $args): void
     $baseDir = __DIR__ . '/..';
     $libsDir = $baseDir . '/libs';
 
+    // Detect installed version from composer.lock
+    $version = null;
+    $composerLockPath = $baseDir . '/composer.lock';
+    if (file_exists($composerLockPath)) {
+        $lockContent = @file_get_contents($composerLockPath);
+        if ($lockContent !== false) {
+            $lock = json_decode($lockContent, true);
+            if (is_array($lock) && isset($lock['packages'])) {
+                foreach ($lock['packages'] as $pkg) {
+                    if (($pkg['name'] ?? '') === 'crazy-goat/piper-php') {
+                        $version = $pkg['version'] ?? null;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // GitHub release URL - use specific version or fallback to latest
+    if ($version !== null && preg_match('/^v?\d+\.\d+\.\d+$/', $version)) {
+        $releaseUrl = "https://github.com/crazy-goat/piper-php/releases/download/{$version}/";
+        echo "Detected version: {$version}\n";
+    } else {
+        $releaseUrl = 'https://github.com/crazy-goat/piper-php/releases/latest/download/';
+        echo "Version not detected, using latest release\n";
+    }
+
     // Detect system architecture
     $arch = php_uname('m');
     $os = strtolower(php_uname('s'));
@@ -245,9 +272,6 @@ function commandInstallDeps(array $args): void
         mkdir($libsDir, 0755, true);
         echo "Created directory: {$libsDir}\n";
     }
-
-    // GitHub release URL
-    $releaseUrl = 'https://github.com/crazy-goat/piper-php/releases/latest/download/';
 
     $files = [
         "libpiper-linux-{$archKey}.tar.gz",
