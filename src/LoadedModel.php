@@ -19,8 +19,8 @@ final class LoadedModel
     private bool $freed = false;
 
     public function __construct(
-        private FFI $piper,
-        private CData $synth,
+        private readonly FFI $piper,
+        private readonly CData $synth,
     ) {
     }
 
