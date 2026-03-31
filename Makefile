@@ -1,4 +1,4 @@
-.PHONY: build-piper1 clean-piper1 init-submodules build-libpiper build-libs examples
+.PHONY: build-piper1 clean-piper1 init-submodules build-libpiper build-libs examples test test-unit test-integration test-model
 
 PIPER_DIR := piper1-gpl
 BUILD_DIR := $(PIPER_DIR)/build
@@ -59,3 +59,24 @@ clean-piper1:
 	@echo "Cleaning piper1-gpl build..."
 	rm -rf $(BUILD_DIR) $(LIBPIPER_BUILD_DIR) $(LIBPIPER_INSTALL_DIR) $(LIBS_DIR)
 	@echo "Clean complete"
+
+TEST_MODELS := models
+
+test: test-unit test-integration
+
+test-unit:
+	@echo "Running unit tests..."
+	vendor/bin/phpunit --testsuite unit
+
+test-integration: test-model
+	@echo "Running integration tests..."
+	vendor/bin/phpunit --group integration
+
+test-model:
+	@if [ ! -f $(TEST_MODELS)/en_US-lessac-low.onnx ] || [ ! -f $(TEST_MODELS)/en_US-lessac-low.onnx.json ]; then \
+		echo "Downloading test voice model en_US-lessac-low..."; \
+		mkdir -p $(TEST_MODELS); \
+		./bin/piper-tts download en_US-lessac-low $(TEST_MODELS); \
+	else \
+		echo "✓ Test voice model exists"; \
+	fi
