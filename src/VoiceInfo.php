@@ -24,7 +24,7 @@ final readonly class VoiceInfo
      */
     public static function fromConfigFile(string $key, string $jsonPath): self
     {
-        $raw = file_get_contents($jsonPath);
+        $raw = @file_get_contents($jsonPath);
         if ($raw === false) {
             throw new Exception\PiperException("Cannot read voice config: {$jsonPath}");
         }
