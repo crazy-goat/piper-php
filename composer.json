@@ -27,7 +27,11 @@
         "cs": "phpcs --standard=phpcs.xml.dist",
         "cs-fix": "phpcbf --standard=phpcs.xml.dist",
         "rector": "rector process --dry-run",
-        "rector:fix": "rector process"
+        "rector:fix": "rector process",
+        "test": "vendor/bin/phpunit --testsuite unit",
+        "test:all": "vendor/bin/phpunit",
+        "test": "vendor/bin/phpunit --testsuite unit",
+        "test:all": "vendor/bin/phpunit"
     },
     "config": {
         "allow-plugins": {
