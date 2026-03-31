@@ -11,6 +11,7 @@ return RectorConfig::configure()
         __DIR__ . '/src',
         __DIR__ . '/examples',
         __DIR__ . '/bin',
+        __DIR__ . '/tests',
     ])
     ->withPhpVersion(\Rector\ValueObject\PhpVersion::PHP_82)
     ->withSets([

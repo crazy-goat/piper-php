@@ -39,7 +39,6 @@ final class LoadedModelIntegrationTest extends TestCase
     {
         $wav = self::$model->speak('Hello world');
 
-        self::assertIsString($wav);
         self::assertNotEmpty($wav);
         self::assertSame('RIFF', substr($wav, 0, 4));
         self::assertSame('WAVE', substr($wav, 8, 4));
@@ -50,8 +49,6 @@ final class LoadedModelIntegrationTest extends TestCase
         $normal = self::$model->speak('Hello world', speed: 1.0);
         $fast = self::$model->speak('Hello world', speed: 2.0);
 
-        self::assertIsString($normal);
-        self::assertIsString($fast);
         self::assertLessThan(strlen($normal), strlen($fast));
     }
 
@@ -63,8 +60,6 @@ final class LoadedModelIntegrationTest extends TestCase
 
         foreach ($chunks as $chunk) {
             self::assertInstanceOf(AudioChunk::class, $chunk);
-            self::assertIsString($chunk->pcmData);
-            self::assertIsInt($chunk->sampleRate);
             self::assertGreaterThan(0, $chunk->sampleRate);
         }
 
@@ -99,7 +94,6 @@ final class LoadedModelIntegrationTest extends TestCase
 
         $ms = $tempModel->warmUp();
 
-        self::assertIsInt($ms);
         self::assertGreaterThan(0, $ms);
 
         $tempModel->free();

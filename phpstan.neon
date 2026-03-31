@@ -4,6 +4,8 @@ parameters:
         - src
         - examples
         - bin
+        - tests
+        - tests
     excludePaths:
         - piper1-gpl/*
     ignoreErrors:

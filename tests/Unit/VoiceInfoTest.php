@@ -32,7 +32,11 @@ final class VoiceInfoTest extends TestCase
     public function test_uses_key_as_name_when_dataset_missing(): void
     {
         $configPath = $this->fixturesDir . '/voice-config-no-dataset.json';
-        $config = ['language' => ['name_english' => 'English', 'code' => 'en_US'], 'audio' => ['quality' => 'low'], 'num_speakers' => 1];
+        $config = [
+            'language' => ['name_english' => 'English', 'code' => 'en_US'],
+            'audio' => ['quality' => 'low'],
+            'num_speakers' => 1,
+        ];
         file_put_contents($configPath, json_encode($config));
 
         $voice = VoiceInfo::fromConfigFile('en_US-test-low', $configPath);

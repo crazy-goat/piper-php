@@ -60,10 +60,9 @@ final class PiperTTSIntegrationTest extends TestCase
     {
         $voices = self::$piper->voices();
 
-        self::assertIsArray($voices);
         self::assertNotEmpty($voices);
 
-        $keys = array_map(fn($v) => $v->key, $voices);
+        $keys = array_map(fn($v): string => $v->key, $voices);
         self::assertContains('en_US-lessac-low', $keys);
     }
 }
