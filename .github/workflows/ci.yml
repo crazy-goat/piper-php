@@ -116,6 +116,12 @@ jobs:
       
     - name: Package build artifacts
       run: |
+        echo "=== Contents of build directory ==="
+        ls -la piper1-gpl/libpiper/build/
+        echo "=== Contents of install/lib ==="
+        ls -la piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/ 2>/dev/null || echo "Directory does not exist"
+        echo "=== Finding libonnxruntime files ==="
+        find piper1-gpl/libpiper/build -name "libonnxruntime*" -type f 2>/dev/null || echo "No libonnxruntime files found"
         tar -czf libpiper-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
         tar -czf libonnxruntime-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib libonnxruntime*.so*
         
