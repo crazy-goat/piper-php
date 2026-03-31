@@ -52,9 +52,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: piper1-gpl/libpiper/build
-        key: ${{ runner.os }}-glibc-piper-build-${{ hashFiles('piper1-gpl/libpiper/CMakeLists.txt') }}
+        key: ${{ runner.os }}-glibc-piper-build-v2-${{ hashFiles('piper1-gpl/libpiper/CMakeLists.txt') }}
         restore-keys: |
-          ${{ runner.os }}-glibc-piper-build-
+          ${{ runner.os }}-glibc-piper-build-v2-
           
     - name: Build Piper
       run: make build-libpiper
@@ -62,7 +62,7 @@ jobs:
     - name: Strip debug symbols
       run: |
         strip --strip-debug piper1-gpl/libpiper/build/libpiper.so
-        find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} +
+        find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} + 2>/dev/null || true
       
     - name: Package build artifacts
       run: |
@@ -110,9 +110,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: piper1-gpl/libpiper/build
-        key: ${{ runner.os }}-musl-piper-build-${{ hashFiles('piper1-gpl/libpiper/CMakeLists.txt') }}
+        key: ${{ runner.os }}-musl-piper-build-v2-${{ hashFiles('piper1-gpl/libpiper/CMakeLists.txt') }}
         restore-keys: |
-          ${{ runner.os }}-musl-piper-build-
+          ${{ runner.os }}-musl-piper-build-v2-
           
     - name: Build Piper
       run: make build-libpiper
@@ -120,7 +120,7 @@ jobs:
     - name: Strip debug symbols
       run: |
         strip --strip-debug piper1-gpl/libpiper/build/libpiper.so
-        find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} +
+        find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} + 2>/dev/null || true
       
     - name: Package build artifacts
       run: |
