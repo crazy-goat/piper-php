@@ -1,0 +1,16 @@
+{
+    "dataset": "gosia",
+    "language": {
+        "name_english": "Polish",
+        "code": "pl_PL",
+        "family": "pl"
+    },
+    "audio": {
+        "quality": "medium",
+        "sample_rate": 22050
+    },
+    "num_speakers": 1,
+    "espeak": {
+        "voice": "pl"
+    }
+}
