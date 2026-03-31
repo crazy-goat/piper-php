@@ -3,7 +3,7 @@
 PIPER_DIR := piper1-gpl
 BUILD_DIR := $(PIPER_DIR)/build
 LIBPIPER_BUILD_DIR := $(PIPER_DIR)/libpiper/build
-LIBPIPER_INSTALL_DIR := $(LIBPIPER_BUILD_DIR)/piper1-gpl/libpiper/install
+LIBPIPER_INSTALL_DIR := $(CURDIR)/$(LIBPIPER_BUILD_DIR)/piper1-gpl/libpiper/install
 LIBS_DIR := libs
 
 init-submodules:
@@ -21,7 +21,7 @@ build-piper1: init-submodules build-libpiper
 build-libpiper:
 	@echo "Building libpiper..."
 	mkdir -p $(LIBPIPER_BUILD_DIR)
-	cd $(LIBPIPER_BUILD_DIR) && cmake .. -DCMAKE_INSTALL_PREFIX=$(CURDIR)/$(LIBPIPER_INSTALL_DIR)
+	cd $(LIBPIPER_BUILD_DIR) && cmake .. -DCMAKE_INSTALL_PREFIX=$(LIBPIPER_INSTALL_DIR)
 	cd $(LIBPIPER_BUILD_DIR) && $(MAKE)
 	cd $(LIBPIPER_BUILD_DIR) && $(MAKE) install
 	@echo "libpiper installed to $(LIBPIPER_INSTALL_DIR)/"
