@@ -21,7 +21,7 @@ build-piper1: init-submodules build-libpiper
 build-libpiper:
 	@echo "Building libpiper..."
 	mkdir -p $(LIBPIPER_BUILD_DIR)
-	cd $(LIBPIPER_BUILD_DIR) && cmake .. -DCMAKE_INSTALL_PREFIX=$(LIBPIPER_INSTALL_DIR)
+	cd $(LIBPIPER_BUILD_DIR) && cmake .. -DCMAKE_INSTALL_PREFIX=$(CURDIR)/$(LIBPIPER_INSTALL_DIR)
 	cd $(LIBPIPER_BUILD_DIR) && $(MAKE)
 	cd $(LIBPIPER_BUILD_DIR) && $(MAKE) install
 	@echo "libpiper installed to $(LIBPIPER_INSTALL_DIR)/"
