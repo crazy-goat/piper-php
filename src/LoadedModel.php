@@ -14,8 +14,10 @@ use FFI\CData;
  * Use this class to synthesize speech with a specific voice.
  * The model remains loaded in memory until explicitly freed.
  */
-final readonly class LoadedModel
+final class LoadedModel
 {
+    private bool $freed = false;
+
     public function __construct(
         private FFI $piper,
         private CData $synth,
@@ -32,6 +34,11 @@ final readonly class LoadedModel
      */
     public function free(): void
     {
+        if ($this->freed) {
+            return;
+        }
+
+        $this->freed = true;
         if (!FFI::isNull($this->synth)) {
             $this->piper->piper_free($this->synth);
         }
@@ -99,7 +106,7 @@ final readonly class LoadedModel
             throw new PiperException('Text cannot be empty');
         }
 
-        if (FFI::isNull($this->synth)) {
+        if ($this->freed) {
             throw new PiperException('Model has been freed');
         }
 
