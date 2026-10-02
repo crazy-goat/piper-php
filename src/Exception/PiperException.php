@@ -6,6 +6,4 @@ namespace CrazyGoat\PiperTTS\Exception;
 
 use RuntimeException;
 
-final class PiperException extends RuntimeException
-{
-}
+final class PiperException extends RuntimeException {}

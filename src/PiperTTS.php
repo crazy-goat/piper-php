@@ -19,36 +19,36 @@ final readonly class PiperTTS
     private string $resolvedOnnxrtPath;
 
     private const CDEF = <<<'CDEF'
-    typedef struct piper_synthesizer piper_synthesizer;
+        typedef struct piper_synthesizer piper_synthesizer;
 
-    typedef struct piper_audio_chunk {
-        const float *samples;
-        size_t num_samples;
-        int sample_rate;
-        bool is_last;
-        const uint32_t *phonemes;
-        size_t num_phonemes;
-        const int *phoneme_ids;
-        size_t num_phoneme_ids;
-        const int *alignments;
-        size_t num_alignments;
-    } piper_audio_chunk;
+        typedef struct piper_audio_chunk {
+            const float *samples;
+            size_t num_samples;
+            int sample_rate;
+            bool is_last;
+            const uint32_t *phonemes;
+            size_t num_phonemes;
+            const int *phoneme_ids;
+            size_t num_phoneme_ids;
+            const int *alignments;
+            size_t num_alignments;
+        } piper_audio_chunk;
 
-    typedef struct piper_synthesize_options {
-        int speaker_id;
-        float length_scale;
-        float noise_scale;
-        float noise_w_scale;
-    } piper_synthesize_options;
+        typedef struct piper_synthesize_options {
+            int speaker_id;
+            float length_scale;
+            float noise_scale;
+            float noise_w_scale;
+        } piper_synthesize_options;
 
-    piper_synthesizer *piper_create(const char *model_path, const char *config_path,
-                                    const char *espeak_data_path);
-    void piper_free(piper_synthesizer *synth);
-    piper_synthesize_options piper_default_synthesize_options(piper_synthesizer *synth);
-    int piper_synthesize_start(piper_synthesizer *synth, const char *text,
-                               const piper_synthesize_options *options);
-    int piper_synthesize_next(piper_synthesizer *synth, piper_audio_chunk *chunk);
-    CDEF;
+        piper_synthesizer *piper_create(const char *model_path, const char *config_path,
+                                        const char *espeak_data_path);
+        void piper_free(piper_synthesizer *synth);
+        piper_synthesize_options piper_default_synthesize_options(piper_synthesizer *synth);
+        int piper_synthesize_start(piper_synthesizer *synth, const char *text,
+                                   const piper_synthesize_options *options);
+        int piper_synthesize_next(piper_synthesizer *synth, piper_audio_chunk *chunk);
+        CDEF;
 
     public function __construct(
         private string $modelsPath,
@@ -170,7 +170,7 @@ final readonly class PiperTTS
 
         throw new PiperException(
             "libpiper.so not found. Searched:\n  " . implode("\n  ", array_merge([$vendorPath], $candidates))
-            . "\nRun 'composer install' to download pre-built libraries, or pass libpiperPath to the constructor."
+            . "\nRun 'composer install' to download pre-built libraries, or pass libpiperPath to the constructor.",
         );
     }
 
@@ -202,7 +202,7 @@ final readonly class PiperTTS
 
         throw new PiperException(
             "libonnxruntime.so not found. Searched:\n  " . implode("\n  ", array_merge([$vendorPath], $candidates))
-            . "\nRun 'composer install' to download pre-built libraries, or pass onnxrtPath to the constructor."
+            . "\nRun 'composer install' to download pre-built libraries, or pass onnxrtPath to the constructor.",
         );
     }
 
@@ -234,7 +234,7 @@ final readonly class PiperTTS
         throw new PiperException(
             "espeak-ng-data directory not found. Searched:\n  "
             . implode("\n  ", array_merge([$vendorPath], $candidates))
-            . "\nRun 'composer install' to download pre-built libraries, or pass espeakDataPath to the constructor."
+            . "\nRun 'composer install' to download pre-built libraries, or pass espeakDataPath to the constructor.",
         );
     }
 }

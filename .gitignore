@@ -4,4 +4,8 @@
 *.wav
 *.onnx
 *.onnx.json
-composer.lock
+/.php-cs-fixer.cache
+/.phpunit.cache/
+/findings.md
+/review.md
+/.env.worktree

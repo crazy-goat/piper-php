@@ -13,6 +13,5 @@ final readonly class AudioChunk
         public int $sampleRate,
         /** True if this is the last chunk */
         public bool $isLast,
-    ) {
-    }
+    ) {}
 }

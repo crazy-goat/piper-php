@@ -1,0 +1,151 @@
+name: Release
+
+# Builds libpiper for Linux (glibc and musl) and attaches the archives to the GitHub Release.
+# ci.yml runs on the default branch (the release gate requires a green ci-ok there), so the
+# test suites are not repeated on the tag.
+# The notes come from the matching CHANGELOG.md section: merge it before tagging.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-piper-glibc:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential pkg-config python3-pip
+        pip3 install "cmake>=3.26"
+        cmake --version
+        
+    - name: Build Piper
+      run: make build-libpiper
+      
+    - name: Strip debug symbols
+      run: |
+        strip --strip-debug piper1-gpl/libpiper/build/libpiper.so
+        find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} + 2>/dev/null || true
+      
+    - name: Package build artifacts
+      run: |
+        tar -czf libpiper-linux-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
+        mkdir -p /tmp/onnx && find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime*.so*" -exec cp -P {} /tmp/onnx/ \; && tar -czf libonnxruntime-linux-x86_64.tar.gz -C /tmp/onnx .
+        tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install espeak-ng-data
+        
+    - name: Upload packaged artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: piper-release-glibc
+        path: |
+          libpiper-linux-x86_64.tar.gz
+          libonnxruntime-linux-x86_64.tar.gz
+          espeak-ng-data.tar.gz
+        retention-days: 7
+
+  build-piper-musl:
+    runs-on: ubuntu-latest
+    container: alpine:3.18
+    
+    steps:
+    - name: Install git and build dependencies
+      run: |
+        apk add --no-cache cmake build-base git linux-headers pkgconfig
+        
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Build Piper
+      run: make build-libpiper
+      
+    - name: Strip debug symbols
+      run: |
+        strip --strip-debug piper1-gpl/libpiper/build/libpiper.so
+        find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} + 2>/dev/null || true
+      
+    - name: Package build artifacts
+      run: |
+        tar -czf libpiper-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
+        mkdir -p /tmp/onnx && find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime*.so*" -exec cp -P {} /tmp/onnx/ \; && tar -czf libonnxruntime-linux-musl-x86_64.tar.gz -C /tmp/onnx .
+        
+    - name: Upload packaged artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: piper-release-musl
+        path: |
+          libpiper-linux-musl-x86_64.tar.gz
+          libonnxruntime-linux-musl-x86_64.tar.gz
+        retention-days: 7
+
+  publish:
+    name: create the release
+    needs: [build-piper-glibc, build-piper-musl]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            /^## \[/ { found = (index($0, "[" v "]") > 0 || index($0, "[v" v "]") > 0); next }
+            /^\[[^]]+\]: / { found = 0 }
+            found
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::CHANGELOG.md has no non-empty section for ${version}"
+            exit 1
+          fi
+          # GitHub rejects release notes over 125000 characters.
+          if [ "$(wc -c < release-notes.md)" -gt 120000 ]; then
+            head -c 120000 release-notes.md > release-notes.cut
+            { sed '$d' release-notes.cut
+              printf '\n_The notes were shortened because of the GitHub size limit. See [CHANGELOG.md](https://github.com/%s/blob/%s/CHANGELOG.md) for the full text._\n' "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME"
+            } > release-notes.md
+            echo "::warning::Release notes truncated"
+          fi
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ls -l dist
+          flags=()
+          case "$GITHUB_REF_NAME" in *-*) flags+=(--prerelease) ;; esac
+          # Re-running after an interrupted run: the release exists, so only the
+          # assets are added, and a leftover draft is published.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/*.tar.gz --clobber
+            if [ "$(gh release view "$GITHUB_REF_NAME" --json isDraft -q .isDraft)" = "true" ]; then
+              gh release edit "$GITHUB_REF_NAME" --draft=false "${flags[@]}"
+            fi
+            exit 0
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/*.tar.gz \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md \
+            --verify-tag \
+            "${flags[@]}"
