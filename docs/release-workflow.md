@@ -115,5 +115,5 @@ Make sure the next milestone `vX.Y.(Z+1)` (or the next minor) exists.
 - [ ] CHANGELOG section `[X.Y.Z] - date` written, `[Unreleased]` is empty
 - [ ] Release PR merged
 - [ ] Annotated tag `vX.Y.Z` pushed
-- [ ] GitHub Release exists with the CHANGELOG notes and the five libpiper/ONNX Runtime/espeak-ng archives
+- [ ] GitHub Release exists with the CHANGELOG notes and the four libpiper/ONNX Runtime/espeak-ng archives
 - [ ] Milestone closed, next milestone exists

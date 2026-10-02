@@ -73,7 +73,7 @@ are not part of it.
 `test-integration` run only for code changes. `ci-ok` aggregates the results and is the check to require.
 
 Tag pushes (`v*`) run `.github/workflows/release.yml`: it builds libpiper for glibc and musl,
-packages the five archives that `piper-tts install-deps` downloads, and creates the GitHub
+packages the four archives (`piper-tts install-deps` downloads the three glibc ones), and creates the GitHub
 Release from the `CHANGELOG.md` section.
 
 ## License
