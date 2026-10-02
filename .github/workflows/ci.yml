@@ -107,15 +107,7 @@ jobs:
         cmake --version
         
     - name: Build Piper
-      run: |
-        make build-libpiper 2>&1 | tee build.log
-        exit_code=$?
-        if [ $exit_code -ne 0 ]; then
-          echo "=== BUILD FAILED ==="
-          cat build.log
-          exit $exit_code
-        fi
-      shell: bash
+      run: make build-libpiper
       
     - name: Strip debug symbols
       run: |
@@ -131,6 +123,27 @@ jobs:
           piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so
           piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data
         retention-days: 7
+
+
+
+  build-piper-musl:
+    name: build-piper-musl
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    container: alpine:3.18
+    
+    steps:
+    - name: Install git and build dependencies
+      run: |
+        apk add --no-cache cmake build-base git linux-headers pkgconfig
+        
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Build Piper
+      run: make build-libpiper
 
   test-integration:
     runs-on: ubuntu-latest
@@ -178,7 +191,7 @@ jobs:
 
   ci-ok:
     name: ci-ok
-    needs: [changes, docs, lint, test-unit, build-piper-glibc, test-integration]
+    needs: [changes, docs, lint, test-unit, build-piper-glibc, build-piper-musl, test-integration]
     if: always()
     runs-on: ubuntu-latest
     steps:
