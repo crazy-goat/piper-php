@@ -40,50 +40,67 @@ All notable changes to this project are documented here, following
 - Pre-built libpiper and ONNX Runtime archives for musl (Alpine), next to the glibc ones.
 - `piper-tts install-deps` detects the package version from `composer.lock` and downloads the
   matching release.
-- Unit and integration test suites (PHPUnit), with `make test`, `make test-unit` and
-  `make test-integration`.
 
 ### Fixed
 
-- Double free in `LoadedModel` when a model was freed explicitly and again by the destructor.
 - `CMAKE_INSTALL_PREFIX` is an absolute path, which fixes duplicated paths in the libpiper build.
-- Warning from `file_get_contents` in `VoiceInfo`.
+- The `libonnxruntime` archive layout is flat, and CI installs cmake 3.26 or newer.
 
 ## [0.1.6] - 2026-03-31
 
 Tag only, no GitHub Release was published.
 
+### Added
+
+- Unit and integration test suites (PHPUnit), with `make test`, `make test-unit`,
+  `make test-integration` and composer test scripts.
+- CI builds libpiper once and shares the artifacts between jobs; the release is created on a tag.
+
+### Fixed
+
+- Double free in `LoadedModel` when a model was freed explicitly and again by the destructor.
+- Warning from `file_get_contents` in `VoiceInfo`.
+- Constructor properties are `readonly`; lint issues in `tests/`.
+
 ### Changed
 
-- CI builds libpiper once and shares the artifacts between jobs; the release is created on a tag.
+- README: PHP version badge, `install-deps` usage and the current Piper repository
+  (OHF-Voice/piper1-gpl).
 
 ## [0.1.5] - 2026-03-30
 
 ### Changed
 
-- Documentation: the README describes `piper-tts install-deps` and the current Piper repository
-  (OHF-Voice/piper1-gpl).
-- `composer.lock` is no longer committed.
+- The `piper-install` script is merged into the `piper-tts` CLI, and the command is renamed to
+  `piper-tts install-deps`.
+- `require-dev` restored in `composer.json`; CI uses `composer update` because no lock file is
+  committed.
 
 ## [0.1.4] - 2026-03-30
 
-### Added
+### Changed
 
-- `vendor/bin/piper-tts install-deps` downloads the pre-built libraries from the GitHub Release.
+- The library download script is renamed to `vendor/bin/piper-install`; the composer
+  post-install scripts are removed.
+- `composer.lock` is no longer committed; README describes `piper-install`.
 
 ## [0.1.3] - 2026-03-30
 
-### Fixed
+### Added
 
-- Release archives contain all versioned `libonnxruntime` files.
+- `post-install.php` is registered as a composer binary, so it runs as `vendor/bin/piper-install`.
 
 ## [0.1.2] - 2026-03-30
 
 ### Added
 
-- Release assets are split into `libpiper-linux-x86_64.tar.gz`, `libonnxruntime-linux-x86_64.tar.gz`
-  and `espeak-ng-data.tar.gz`, with debug symbols stripped.
-- `make build-libs` and `make examples` for local development.
+- `make build-libs` and `make examples` for local development, with automatic voice model
+  download.
+
+### Changed
+
+- Examples save their output next to the script, with a matching name.
+- `libs/` is gitignored.
 
 ## [0.1.1] - 2026-03-30
 
@@ -92,8 +109,13 @@ Tag only, no GitHub Release was published.
 ### Added
 
 - First version: `PiperTTS`, `LoadedModel` (`speak`, `speakStreaming`, `warmUp`), `AudioChunk`,
-  `VoiceInfo`, the exception hierarchy, the `piper-tts` CLI for voice models, and examples.
-- CI with PHP_CodeSniffer, PHPStan and Rector.
+  `VoiceInfo`, the exception hierarchy, the `piper-tts` CLI for voice models, examples and README.
+- The `piper1-gpl` submodule, built into libpiper with cmake.
+- Linting with PHPStan, PHP_CodeSniffer and Rector, and a CI workflow.
+- Release archives built on tags: `libpiper-linux-x86_64.tar.gz`,
+  `libonnxruntime-linux-x86_64.tar.gz` (all versioned files, debug symbols stripped) and
+  `espeak-ng-data.tar.gz`.
+- A post-install script that downloads the pre-built libraries for the detected architecture.
 
 [Unreleased]: https://github.com/crazy-goat/piper-php/compare/v0.1.8...HEAD
 [0.1.8]: https://github.com/crazy-goat/piper-php/compare/v0.1.7...v0.1.8
