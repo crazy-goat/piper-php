@@ -165,7 +165,7 @@ jobs:
       run: composer install --no-interaction --no-progress
         
     - name: Download build artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: piper-build-glibc
         path: piper1-gpl/libpiper/build
