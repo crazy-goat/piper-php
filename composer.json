@@ -16,7 +16,7 @@
         "bin/piper-tts"
     ],
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "3.95.1",
+        "friendsofphp/php-cs-fixer": "3.95.27",
         "phpstan/phpstan": "2.1.45",
         "phpunit/phpunit": "10.5.63",
         "rector/rector": "2.3.9"
