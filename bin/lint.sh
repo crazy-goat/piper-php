@@ -24,7 +24,7 @@ step "composer audit" composer audit --locked
 step "php-cs-fixer" vendor/bin/php-cs-fixer fix --dry-run --diff
 step "phpstan" vendor/bin/phpstan analyse --no-progress
 step "rector" vendor/bin/rector process --dry-run --no-progress-bar
-step "shellcheck" bash -c "git ls-files -z '*.sh' | xargs -0 -r shellcheck"
+step "shellcheck" bash -c "git ls-files -z --cached --others --exclude-standard '*.sh' | xargs -0 -r shellcheck"
 
 if [ "${#failed[@]}" -gt 0 ]; then
     echo "Failed: ${failed[*]}" >&2
