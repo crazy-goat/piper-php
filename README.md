@@ -326,7 +326,19 @@ ldd /path/to/libpiper.so
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file.
+The PHP code in this repository is released under the [MIT License](LICENSE).
+
+It loads **libpiper**, built from the [piper1-gpl](https://github.com/OHF-Voice/piper1-gpl)
+submodule, at runtime through FFI. piper1-gpl (libpiper, and the espeak-ng data it ships) is
+licensed under **GPL-3.0**; ONNX Runtime has its own (MIT) license. The MIT license of this
+package does not change the license of those components.
+
+- The release assets of this repository (`libpiper-*.tar.gz`, `libonnxruntime-*.tar.gz` and
+  `espeak-ng-data.tar.gz`, which `vendor/bin/piper-tts install-deps` downloads) are binary builds of
+  piper1-gpl and are GPL-3.0. The source is the `piper1-gpl` submodule at the tagged commit.
+- If you distribute libpiper (a Docker image, a package, an application bundle), you must comply
+  with GPL-3.0 for that binary, including offering its source.
+- Voice models have their own licenses; check the model card of each voice.
 
 ## Credits
 
@@ -336,4 +348,6 @@ MIT License - see [LICENSE](LICENSE) file.
 
 ## Contributing
 
-Contributions welcome! Please submit issues and pull requests on GitHub.
+Contributions are welcome. Open issues and pull requests on GitHub. The development process is in
+[docs/workflow.md](docs/workflow.md) and the project commands are in [AGENTS.md](AGENTS.md).
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
