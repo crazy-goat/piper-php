@@ -7,7 +7,7 @@ The development process (issue, worktree, review, PR, merge) is in
 [docs/release-workflow.md](docs/release-workflow.md). The default branch is `master`.
 
 Everything is written in English (code, comments, docs, commits, issues). The Polish sample
-input `"Cześć!"` with the `pl_PL-gosia-medium` voice in `examples/*.php` is deliberate.
+input for the `pl_PL-gosia-medium` voice in `examples/*.php` is deliberate.
 
 ## Layout
 
@@ -34,7 +34,9 @@ composer install
 # Lint: composer validate/audit + php-cs-fixer + PHPStan + Rector (dry run) + shellcheck
 bin/lint.sh                # check only; runs every step; `composer lint` / `make lint` call it
 bin/lint.sh --fix          # fixers first, then the checks; `composer lint:fix`
-composer cs | phpstan | rector     # single tools
+composer cs         # PHP-CS-Fixer, check only
+composer phpstan    # PHPStan
+composer rector     # Rector, dry run
 
 # Tests
 composer test              # unit suite (vendor/bin/phpunit --testsuite unit)
