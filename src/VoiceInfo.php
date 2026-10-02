@@ -13,8 +13,7 @@ final readonly class VoiceInfo
         public string $languageCode,
         public string $quality,
         public int $numSpeakers,
-    ) {
-    }
+    ) {}
 
     /**
      * Parse a voice config JSON file into a VoiceInfo.

@@ -21,8 +21,7 @@ final class LoadedModel
     public function __construct(
         private readonly FFI $piper,
         private readonly CData $synth,
-    ) {
-    }
+    ) {}
 
     public function __destruct()
     {
@@ -141,7 +140,7 @@ final class LoadedModel
                 } elseif ($sample < -1.0) {
                     $sample = -1.0;
                 }
-                $pcmData .= pack('v', ((int)($sample * 32767)) & 0xFFFF);
+                $pcmData .= pack('v', ((int) ($sample * 32767)) & 0xFFFF);
             }
 
             $isLast = $rc === 1;
