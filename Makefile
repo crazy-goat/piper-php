@@ -1,4 +1,4 @@
-.PHONY: build-piper1 clean-piper1 init-submodules build-libpiper build-libs examples test test-unit test-integration test-model
+.PHONY: lint lint-fix build-piper1 clean-piper1 init-submodules build-libpiper build-libs examples test test-unit test-integration test-model
 
 PIPER_DIR := piper1-gpl
 BUILD_DIR := $(PIPER_DIR)/build
@@ -80,3 +80,9 @@ test-model:
 	else \
 		echo "✓ Test voice model exists"; \
 	fi
+
+lint:
+	bin/lint.sh
+
+lint-fix:
+	bin/lint.sh --fix
