@@ -6,6 +6,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-02
+
 ### Added
 
 - `LICENSE` (MIT) and a README License section explaining that libpiper and the espeak-ng data
@@ -25,6 +27,10 @@ All notable changes to this project are documented here, following
 - CI: the `lint` job runs only `bin/lint.sh`; jobs run only for code changes; unit tests run on
   PHP 8.2 to 8.5; an aggregate `ci-ok` check is the one to require. CI no longer runs on tag
   pushes.
+- Releases are built by `release.yml` instead of `ci.yml`. The GitHub Release notes now come from
+  `CHANGELOG.md`; the five archives are the same as in 0.1.8.
+- The PHP sources and `bin/piper-tts` are reformatted to PER-CS 2.0. There is no change in
+  behaviour or in the public API.
 
 ## [0.1.8] - 2026-03-31
 
@@ -117,7 +123,8 @@ Tag only, no GitHub Release was published.
   `espeak-ng-data.tar.gz`.
 - A post-install script that downloads the pre-built libraries for the detected architecture.
 
-[Unreleased]: https://github.com/crazy-goat/piper-php/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/crazy-goat/piper-php/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/crazy-goat/piper-php/compare/v0.1.8...v0.2.0
 [0.1.8]: https://github.com/crazy-goat/piper-php/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/crazy-goat/piper-php/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/crazy-goat/piper-php/compare/v0.1.5...v0.1.6
