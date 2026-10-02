@@ -78,22 +78,10 @@ jobs:
       
     - name: Package build artifacts
       run: |
-        # The prebuilt ONNX Runtime that libpiper downloads is glibc-only, so this job
-        # links the Alpine package. Ship it with the libraries it needs (abseil, protobuf,
-        # ICU, ...). All libraries get an $ORIGIN rpath, so that they find each other in
-        # the directory they are extracted to, without `apk add` and LD_LIBRARY_PATH.
-        # musl matches an already loaded library by the file name it was loaded with, so
-        # libpiper.so needs the rpath to find libonnxruntime.so.1.
-        apk add --no-cache patchelf
-        mkdir -p /tmp/onnx
-        cp -P /usr/lib/libonnxruntime*.so* /tmp/onnx/
-        ldd /usr/lib/libonnxruntime.so.1 | awk '$3 ~ "^/usr/lib/" { print $3 }' | xargs -I{} cp -L {} /tmp/onnx/
-        # shellcheck disable=SC2016  # $ORIGIN is meant literally
-        find /tmp/onnx -type f -name '*.so*' -exec patchelf --set-rpath '$ORIGIN' {} +
-        # shellcheck disable=SC2016
-        patchelf --set-rpath '$ORIGIN' piper1-gpl/libpiper/build/libpiper.so
+        # The prebuilt ONNX Runtime that libpiper downloads is glibc-only, so this job links
+        # the Alpine package (onnxruntime-dev). It is not shipped: Alpine users install it with
+        # `apk add onnxruntime`. The espeak-ng data is the same for glibc and musl.
         tar -czf libpiper-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        tar -czf libonnxruntime-linux-musl-x86_64.tar.gz -C /tmp/onnx .
         
     - name: Upload packaged artifacts
       uses: actions/upload-artifact@v7
@@ -101,7 +89,6 @@ jobs:
         name: piper-release-musl
         path: |
           libpiper-linux-musl-x86_64.tar.gz
-          libonnxruntime-linux-musl-x86_64.tar.gz
         retention-days: 7
 
   publish:

@@ -52,6 +52,11 @@ tar -xzf libonnxruntime-linux-x86_64.tar.gz
 tar -xzf espeak-ng-data.tar.gz
 ```
 
+On Alpine Linux (musl) use `libpiper-linux-musl-x86_64.tar.gz` instead of the two glibc
+libpiper and ONNX Runtime archives, together with `espeak-ng-data.tar.gz`. Install ONNX Runtime
+from the Alpine package: `apk add onnxruntime-dev` (the musl build of libpiper is linked
+against it).
+
 ### Building from Source
 
 If you prefer to build from source or need a different architecture:
