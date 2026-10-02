@@ -47,7 +47,7 @@ jobs:
         tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install espeak-ng-data
         
     - name: Upload packaged artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: piper-release-glibc
         path: |
@@ -83,7 +83,7 @@ jobs:
         mkdir -p /tmp/onnx && find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime*.so*" -exec cp -P {} /tmp/onnx/ \; && tar -czf libonnxruntime-linux-musl-x86_64.tar.gz -C /tmp/onnx .
         
     - name: Upload packaged artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: piper-release-musl
         path: |
