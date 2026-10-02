@@ -88,7 +88,8 @@ at 120000 bytes, at a line boundary, and adds a link to `CHANGELOG.md` at the ta
 
 Tags with a `-` (for example `v0.2.0-rc.1`) are published as pre-releases. If the release
 already exists (for example after a failed upload), re-running the workflow uploads the
-archives to it with `--clobber` and leaves its notes unchanged.
+archives to it with `--clobber`, publishes it if an interrupted run left it as a draft, and
+leaves its notes unchanged.
 
 ```bash
 gh run watch
