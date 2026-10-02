@@ -63,7 +63,7 @@ file from the **tagged commit**, so the release PR with the `## [X.Y.Z]` section
 must be **merged before** you tag.
 
 The workflow builds libpiper from the `piper1-gpl` submodule on Linux (glibc on
-`ubuntu-latest`, musl in an `alpine:3.18` container) and packages five archives:
+`ubuntu-latest`, musl in an `alpine:3.23` container) and packages five archives:
 
 | Asset | Content |
 |---|---|
@@ -71,7 +71,7 @@ The workflow builds libpiper from the `piper1-gpl` submodule on Linux (glibc on
 | `libonnxruntime-linux-x86_64.tar.gz` | ONNX Runtime shared libraries (glibc) |
 | `espeak-ng-data.tar.gz` | espeak-ng phoneme data |
 | `libpiper-linux-musl-x86_64.tar.gz` | `libpiper.so` (musl) |
-| `libonnxruntime-linux-musl-x86_64.tar.gz` | ONNX Runtime shared libraries (musl) |
+| `libonnxruntime-linux-musl-x86_64.tar.gz` | ONNX Runtime (Alpine package) with the libraries it needs; every library has an `$ORIGIN` rpath |
 
 It then creates the GitHub Release with `gh release create --verify-tag`, using the
 notes from the matching `CHANGELOG.md` section, and attaches the archives. It fails

@@ -44,7 +44,7 @@ jobs:
       run: |
         tar -czf libpiper-linux-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
         mkdir -p /tmp/onnx && find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime*.so*" -exec cp -P {} /tmp/onnx/ \; && tar -czf libonnxruntime-linux-x86_64.tar.gz -C /tmp/onnx .
-        tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install espeak-ng-data
+        tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/share espeak-ng-data
         
     - name: Upload packaged artifacts
       uses: actions/upload-artifact@v7
@@ -58,12 +58,12 @@ jobs:
 
   build-piper-musl:
     runs-on: ubuntu-latest
-    container: alpine:3.18
+    container: alpine:3.23
     
     steps:
     - name: Install git and build dependencies
       run: |
-        apk add --no-cache cmake build-base git linux-headers pkgconfig
+        apk add --no-cache cmake build-base git linux-headers pkgconfig onnxruntime-dev
         
     - uses: actions/checkout@v7
       with:
@@ -75,12 +75,25 @@ jobs:
     - name: Strip debug symbols
       run: |
         strip --strip-debug piper1-gpl/libpiper/build/libpiper.so
-        find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} + 2>/dev/null || true
       
     - name: Package build artifacts
       run: |
+        # The prebuilt ONNX Runtime that libpiper downloads is glibc-only, so this job
+        # links the Alpine package. Ship it with the libraries it needs (abseil, protobuf,
+        # ICU, ...). All libraries get an $ORIGIN rpath, so that they find each other in
+        # the directory they are extracted to, without `apk add` and LD_LIBRARY_PATH.
+        # musl matches an already loaded library by the file name it was loaded with, so
+        # libpiper.so needs the rpath to find libonnxruntime.so.1.
+        apk add --no-cache patchelf
+        mkdir -p /tmp/onnx
+        cp -P /usr/lib/libonnxruntime*.so* /tmp/onnx/
+        ldd /usr/lib/libonnxruntime.so.1 | awk '$3 ~ "^/usr/lib/" { print $3 }' | xargs -I{} cp -L {} /tmp/onnx/
+        # shellcheck disable=SC2016  # $ORIGIN is meant literally
+        find /tmp/onnx -type f -name '*.so*' -exec patchelf --set-rpath '$ORIGIN' {} +
+        # shellcheck disable=SC2016
+        patchelf --set-rpath '$ORIGIN' piper1-gpl/libpiper/build/libpiper.so
         tar -czf libpiper-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        mkdir -p /tmp/onnx && find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime*.so*" -exec cp -P {} /tmp/onnx/ \; && tar -czf libonnxruntime-linux-musl-x86_64.tar.gz -C /tmp/onnx .
+        tar -czf libonnxruntime-linux-musl-x86_64.tar.gz -C /tmp/onnx .
         
     - name: Upload packaged artifacts
       uses: actions/upload-artifact@v7
