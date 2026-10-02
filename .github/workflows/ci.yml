@@ -178,7 +178,7 @@ jobs:
         cp -r piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data libs/
         
     - name: Cache voice model
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: models/
         key: voice-model-en-us-lessac-low-v1
