@@ -33,15 +33,7 @@ jobs:
         cmake --version
         
     - name: Build Piper
-      run: |
-        make build-libpiper 2>&1 | tee build.log
-        exit_code=$?
-        if [ $exit_code -ne 0 ]; then
-          echo "=== BUILD FAILED ==="
-          cat build.log
-          exit $exit_code
-        fi
-      shell: bash
+      run: make build-libpiper
       
     - name: Strip debug symbols
       run: |
@@ -141,7 +133,15 @@ jobs:
         run: |
           set -euo pipefail
           ls -l dist
+          # Re-running after a failed upload: the release exists, so only the assets are added.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/*.tar.gz --clobber
+            exit 0
+          fi
+          flags=()
+          case "$GITHUB_REF_NAME" in *-*) flags+=(--prerelease) ;; esac
           gh release create "$GITHUB_REF_NAME" dist/*.tar.gz \
             --title "$GITHUB_REF_NAME" \
             --notes-file release-notes.md \
-            --verify-tag
+            --verify-tag \
+            "${flags[@]}"

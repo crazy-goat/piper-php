@@ -84,7 +84,11 @@ archives are binary distributions of GPL code built from the public `piper1-gpl`
 submodule, which is the corresponding source.
 
 GitHub rejects release notes longer than 125000 characters. The workflow cuts the notes
-below 120000 characters at a line boundary and adds a link to `CHANGELOG.md` at the tag.
+at 120000 bytes, at a line boundary, and adds a link to `CHANGELOG.md` at the tag.
+
+Tags with a `-` (for example `v0.2.0-rc.1`) are published as pre-releases. If the release
+already exists (for example after a failed upload), re-running the workflow uploads the
+archives to it with `--clobber` and leaves its notes unchanged.
 
 ```bash
 gh run watch
