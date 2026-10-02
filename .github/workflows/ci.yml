@@ -2,41 +2,97 @@ name: CI
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [master]
   pull_request:
-    branches: [ master, main ]
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Composer fetches dists from codeload.github.com, which rate-limits unauthenticated
+  # requests. The automatic token needs no setup and raises the limit.
+  COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
 
 jobs:
+  changes:
+    name: Changes
+    uses: crazy-goat/.github/.github/workflows/changes.yml@main
+    with:
+      docs-regex: '^(.*\.md|docs/.*|LICENSE.*|\.github/ISSUE_TEMPLATE/.*|\.github/pull_request_template\.md|\.gitignore)$'
+
+  docs:
+    name: Docs
+    uses: crazy-goat/.github/.github/workflows/docs-check.yml@main
+
+  # Setup only; every check lives in bin/lint.sh (composer validate/audit, php-cs-fixer,
+  # PHPStan, Rector, shellcheck). One PHP version is enough: these tools do not vary across runtimes.
   lint:
+    name: lint
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: ffi
-        
-    - name: Install dependencies
-      run: composer update --prefer-dist --no-progress
-      
-    - name: Run PHP_CodeSniffer
-      run: composer cs
-      
-    - name: Run PHPStan
-      run: composer phpstan
-      
-    - name: Run Rector (dry-run)
-      run: composer rector
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: ffi
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress
+
+      # Pinned: the version the image ships would change under us without a commit here.
+      - name: Install shellcheck
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz \
+            | tar -xJ --strip-components=1 -C "$HOME/.local/bin" shellcheck-v0.11.0/shellcheck
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/shellcheck" --version
+
+      - name: Lint
+        run: bin/lint.sh
+
+  test-unit:
+    name: unit (php ${{ matrix.php }})
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # composer.json requires php >=8.2
+        php: ['8.2', '8.3', '8.4', '8.5']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ffi
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Run unit tests
+        run: vendor/bin/phpunit --testsuite unit
 
   build-piper-glibc:
     runs-on: ubuntu-latest
-    needs: lint
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     
     steps:
     - uses: actions/checkout@v4
@@ -47,7 +103,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential pkg-config python3-pip
-        pip3 install cmake>=3.26
+        pip3 install "cmake>=3.26"
         cmake --version
         
     - name: Build Piper
@@ -66,12 +122,6 @@ jobs:
         strip --strip-debug piper1-gpl/libpiper/build/libpiper.so
         find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} + 2>/dev/null || true
       
-    - name: Package build artifacts
-      run: |
-        tar -czf libpiper-linux-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        mkdir -p /tmp/onnx && find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime*.so*" -exec cp -P {} /tmp/onnx/ \; && tar -czf libonnxruntime-linux-x86_64.tar.gz -C /tmp/onnx .
-        tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install espeak-ng-data
-        
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -82,76 +132,10 @@ jobs:
           piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data
         retention-days: 7
 
-    - name: Upload packaged artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: piper-release-glibc
-        path: |
-          libpiper-linux-x86_64.tar.gz
-          libonnxruntime-linux-x86_64.tar.gz
-          espeak-ng-data.tar.gz
-        retention-days: 7
-
-  build-piper-musl:
-    runs-on: ubuntu-latest
-    needs: lint
-    container: alpine:3.18
-    
-    steps:
-    - name: Install git and build dependencies
-      run: |
-        apk add --no-cache cmake build-base git linux-headers pkgconfig
-        
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        
-    - name: Build Piper
-      run: make build-libpiper
-      
-    - name: Strip debug symbols
-      run: |
-        strip --strip-debug piper1-gpl/libpiper/build/libpiper.so
-        find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} + 2>/dev/null || true
-      
-    - name: Package build artifacts
-      run: |
-        tar -czf libpiper-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        mkdir -p /tmp/onnx && find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime*.so*" -exec cp -P {} /tmp/onnx/ \; && tar -czf libonnxruntime-linux-musl-x86_64.tar.gz -C /tmp/onnx .
-        
-    - name: Upload packaged artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: piper-release-musl
-        path: |
-          libpiper-linux-musl-x86_64.tar.gz
-          libonnxruntime-linux-musl-x86_64.tar.gz
-        retention-days: 7
-
-  test-unit:
-    runs-on: ubuntu-latest
-    needs: lint
-    
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: ffi
-        
-    - name: Install dependencies
-      run: composer update --prefer-dist --no-progress
-      
-    - name: Run unit tests
-      run: vendor/bin/phpunit --testsuite unit
-
   test-integration:
     runs-on: ubuntu-latest
-    needs: [lint, build-piper-glibc]
+    needs: [changes, build-piper-glibc]
+    if: needs.changes.outputs.code == 'true'
     
     steps:
     - uses: actions/checkout@v4
@@ -165,7 +149,7 @@ jobs:
         extensions: ffi
         
     - name: Install dependencies
-      run: composer update --prefer-dist --no-progress
+      run: composer install --no-interaction --no-progress
         
     - name: Download build artifacts
       uses: actions/download-artifact@v4
@@ -192,31 +176,25 @@ jobs:
     - name: Run integration tests
       run: vendor/bin/phpunit --group integration
 
-  release:
+  ci-ok:
+    name: ci-ok
+    needs: [changes, docs, lint, test-unit, build-piper-glibc, test-integration]
+    if: always()
     runs-on: ubuntu-latest
-    needs: [test-unit, test-integration, build-piper-musl]
-    if: startsWith(github.ref, 'refs/tags/v')
-    
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Download glibc artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: piper-release-glibc
-        
-    - name: Download musl artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: piper-release-musl
-        
-    - name: Create GitHub Release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}" || true
-        gh release upload ${{ github.ref_name }} libpiper-linux-x86_64.tar.gz --clobber
-        gh release upload ${{ github.ref_name }} libonnxruntime-linux-x86_64.tar.gz --clobber
-        gh release upload ${{ github.ref_name }} espeak-ng-data.tar.gz --clobber
-        gh release upload ${{ github.ref_name }} libpiper-linux-musl-x86_64.tar.gz --clobber
-        gh release upload ${{ github.ref_name }} libonnxruntime-linux-musl-x86_64.tar.gz --clobber
+      - name: Check results
+        env:
+          CODE: ${{ needs.changes.outputs.code }}
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Code changes: $CODE"
+          echo "Results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in failure|cancelled) exit 1 ;; esac
+          done
+          # Documentation-only changes skip the heavy jobs; code changes need all of them.
+          if [ "$CODE" = "true" ]; then
+            for r in $RESULTS; do
+              [ "$r" = "success" ] || exit 1
+            done
+          fi
