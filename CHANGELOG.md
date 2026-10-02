@@ -6,6 +6,21 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- libpiper (the `piper1-gpl` submodule) is upgraded from v1.4.1 to v1.8.0 (ONNX Runtime stays at
+  1.22.0 for glibc). The `piper.h` changes are additive (`piper_create_with_options`,
+  `piper_version`, `EXPORT_SYMBOL`), so the FFI definitions and the public PHP API are
+  unchanged. Closes #21; replaces Dependabot PR #3.
+- The musl build (CI and release) runs in `alpine:3.23` and links the Alpine `onnxruntime` package
+  (1.23.0) instead of the prebuilt glibc-only ONNX Runtime, which no longer links on musl since
+  libpiper builds the `piper` executable too. Because that package is not ours to redistribute with
+  its dependencies, the release no longer has `libonnxruntime-linux-musl-x86_64.tar.gz` (it held a
+  glibc library that cannot be loaded on musl). On Alpine run `apk add onnxruntime-dev` and use
+  `libpiper-linux-musl-x86_64.tar.gz` with `espeak-ng-data.tar.gz`. The glibc assets are unchanged.
+- libpiper now installs the espeak-ng data to `share/espeak-ng-data` instead of `espeak-ng-data`;
+  `make build-libs`, CI and the release workflow use the new path.
+
 ## [0.2.0] - 2026-10-02
 
 ### Added

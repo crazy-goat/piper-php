@@ -44,7 +44,7 @@ jobs:
       run: |
         tar -czf libpiper-linux-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
         mkdir -p /tmp/onnx && find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime*.so*" -exec cp -P {} /tmp/onnx/ \; && tar -czf libonnxruntime-linux-x86_64.tar.gz -C /tmp/onnx .
-        tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install espeak-ng-data
+        tar -czf espeak-ng-data.tar.gz -C piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/share espeak-ng-data
         
     - name: Upload packaged artifacts
       uses: actions/upload-artifact@v7
@@ -58,12 +58,12 @@ jobs:
 
   build-piper-musl:
     runs-on: ubuntu-latest
-    container: alpine:3.18
+    container: alpine:3.23
     
     steps:
     - name: Install git and build dependencies
       run: |
-        apk add --no-cache cmake build-base git linux-headers pkgconfig
+        apk add --no-cache cmake build-base git linux-headers pkgconfig onnxruntime-dev
         
     - uses: actions/checkout@v7
       with:
@@ -75,12 +75,13 @@ jobs:
     - name: Strip debug symbols
       run: |
         strip --strip-debug piper1-gpl/libpiper/build/libpiper.so
-        find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime.so.*" -type f -exec strip --strip-debug {} + 2>/dev/null || true
       
     - name: Package build artifacts
       run: |
+        # The prebuilt ONNX Runtime that libpiper downloads is glibc-only, so this job links
+        # the Alpine package (onnxruntime-dev). It is not shipped: Alpine users install it with
+        # `apk add onnxruntime-dev`. The espeak-ng data is the same for glibc and musl.
         tar -czf libpiper-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        mkdir -p /tmp/onnx && find piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib -name "libonnxruntime*.so*" -exec cp -P {} /tmp/onnx/ \; && tar -czf libonnxruntime-linux-musl-x86_64.tar.gz -C /tmp/onnx .
         
     - name: Upload packaged artifacts
       uses: actions/upload-artifact@v7
@@ -88,7 +89,6 @@ jobs:
         name: piper-release-musl
         path: |
           libpiper-linux-musl-x86_64.tar.gz
-          libonnxruntime-linux-musl-x86_64.tar.gz
         retention-days: 7
 
   publish:
