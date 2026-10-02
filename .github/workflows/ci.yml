@@ -38,7 +38,7 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -74,7 +74,7 @@ jobs:
         # composer.json requires php >=8.2
         php: ['8.2', '8.3', '8.4', '8.5']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -95,7 +95,7 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
         
@@ -138,7 +138,7 @@ jobs:
       run: |
         apk add --no-cache cmake build-base git linux-headers pkgconfig
         
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
         
@@ -151,7 +151,7 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
         
