@@ -121,7 +121,7 @@ jobs:
         path: |
           piper1-gpl/libpiper/build/libpiper.so
           piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so
-          piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data
+          piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/share/espeak-ng-data
         retention-days: 7
 
 
@@ -131,12 +131,12 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    container: alpine:3.18
+    container: alpine:3.23
     
     steps:
     - name: Install git and build dependencies
       run: |
-        apk add --no-cache cmake build-base git linux-headers pkgconfig
+        apk add --no-cache cmake build-base git linux-headers pkgconfig onnxruntime-dev
         
     - uses: actions/checkout@v7
       with:
@@ -175,7 +175,7 @@ jobs:
         mkdir -p libs
         cp piper1-gpl/libpiper/build/libpiper.so libs/
         cp piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/lib/libonnxruntime.so* libs/
-        cp -r piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/espeak-ng-data libs/
+        cp -r piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/share/espeak-ng-data libs/
         
     - name: Cache voice model
       uses: actions/cache@v6
