@@ -62,16 +62,18 @@ Pushing the tag starts `.github/workflows/release.yml`. GitHub runs the workflow
 file from the **tagged commit**, so the release PR with the `## [X.Y.Z]` section
 must be **merged before** you tag.
 
-The workflow builds libpiper from the `piper1-gpl` submodule on Linux (glibc on
-`ubuntu-latest`, musl in an `alpine:3.18` container) and packages five archives:
+The workflow builds libpiper from the `piper1-gpl` submodule on Linux (`ubuntu-latest`, glibc)
+and packages three archives:
 
 | Asset | Content |
 |---|---|
 | `libpiper-linux-x86_64.tar.gz` | `libpiper.so` (glibc) |
 | `libonnxruntime-linux-x86_64.tar.gz` | ONNX Runtime shared libraries (glibc) |
 | `espeak-ng-data.tar.gz` | espeak-ng phoneme data |
-| `libpiper-linux-musl-x86_64.tar.gz` | `libpiper.so` (musl) |
-| `libonnxruntime-linux-musl-x86_64.tar.gz` | ONNX Runtime shared libraries (musl) |
+
+There is no musl (Alpine) build. Microsoft publishes no musl build of ONNX Runtime, which
+libpiper links, so there is nothing to build a musl `libpiper.so` against. See the `Removed`
+entry in `CHANGELOG.md`.
 
 It then creates the GitHub Release with `gh release create --verify-tag`, using the
 notes from the matching `CHANGELOG.md` section, and attaches the archives. It fails
@@ -116,5 +118,5 @@ Make sure the next milestone `vX.Y.(Z+1)` (or the next minor) exists.
 - [ ] CHANGELOG section `[X.Y.Z] - date` written, `[Unreleased]` is empty
 - [ ] Release PR merged
 - [ ] Annotated tag `vX.Y.Z` pushed
-- [ ] GitHub Release exists with the CHANGELOG notes and the five libpiper/ONNX Runtime/espeak-ng archives
+- [ ] GitHub Release exists with the CHANGELOG notes and the three libpiper/ONNX Runtime/espeak-ng archives
 - [ ] Milestone closed, next milestone exists

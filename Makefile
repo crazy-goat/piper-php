@@ -31,7 +31,7 @@ build-libs: build-libpiper
 	mkdir -p $(LIBS_DIR)
 	cp $(LIBPIPER_BUILD_DIR)/libpiper.so $(LIBS_DIR)/
 	cp $(LIBPIPER_INSTALL_DIR)/lib/libonnxruntime.so* $(LIBS_DIR)/ 2>/dev/null || cp $(LIBPIPER_INSTALL_DIR)/lib/libonnxruntime*.so* $(LIBS_DIR)/
-	cp -r $(LIBPIPER_INSTALL_DIR)/espeak-ng-data $(LIBS_DIR)/
+	cp -r $(LIBPIPER_INSTALL_DIR)/share/espeak-ng-data $(LIBS_DIR)/
 	@echo "Libraries ready in $(LIBS_DIR)/"
 	@echo "  - libpiper.so"
 	@echo "  - libonnxruntime.so (and versioned files)"

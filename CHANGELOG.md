@@ -6,6 +6,37 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- libpiper (the `piper1-gpl` submodule) is upgraded from v1.4.1 to v1.8.0 (ONNX Runtime stays at
+  1.22.0 for glibc). The `piper.h` changes are additive (`piper_create_with_options`,
+  `piper_version`, `EXPORT_SYMBOL`), so the FFI definitions and the public PHP API are
+  unchanged. This is the upgrade part of #21; its musl part is replaced by #26 below. It also
+  replaces Dependabot PR #3.
+- libpiper now installs the espeak-ng data to `share/espeak-ng-data` instead of `espeak-ng-data`;
+  `make build-libs`, CI and the release workflow use the new path.
+
+### Removed
+
+- musl (Alpine) support. piper-php no longer builds, tests or publishes anything for musl: the
+  `build-piper-musl` CI job is gone, and the release no longer produces
+  `libpiper-linux-musl-x86_64.tar.gz` or `libonnxruntime-linux-musl-x86_64.tar.gz`. The
+  supported platform is Linux x86_64 with glibc. Closes #26.
+- This is a deliberate removal of a platform, not a silent change, so the reasons are recorded
+  here. libpiper links ONNX Runtime, and Microsoft publishes no musl build of it: the `linux-x64`,
+  `linux-aarch64` and CUDA archives are the only Linux builds in the 1.22.0, 1.23.0, 1.23.2 and
+  1.30.0 releases of `microsoft/onnxruntime`. There is therefore nothing for a musl `libpiper.so`
+  to link against, except a package from Alpine's own repository that we would have to
+  redistribute together with its dependencies.
+- The musl archives never worked. `libonnxruntime-linux-musl-x86_64.tar.gz`, published up to and
+  including v0.2.0, holds a **glibc** library: its `libonnxruntime.so.1.22.0` has versioned
+  references to `GLIBC_2.2.5` up to `GLIBC_2.27`, which the musl loader cannot resolve. The name
+  said musl, the content was glibc. `vendor/bin/piper-tts install-deps` never downloaded these
+  archives, so Composer installs were never affected.
+- What to do on musl: run piper-php on a glibc-based Linux image (Debian, Ubuntu) instead of
+  Alpine, or build libpiper from the `piper1-gpl` submodule against an ONNX Runtime you provide
+  yourself. There is no working musl setup to migrate from, because there never was one.
+
 ## [0.2.0] - 2026-10-02
 
 ### Added

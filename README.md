@@ -22,6 +22,9 @@ Fast, local text-to-speech synthesis without external services. Piper runs entir
 - Piper library (libpiper.so) and ONNX Runtime
 - Voice models (.onnx files)
 
+The pre-built libraries are for **Linux x86_64 with glibc**. Any other platform has to build
+libpiper from source (see [Building from Source](#building-from-source)).
+
 ## Installation
 
 ```bash
