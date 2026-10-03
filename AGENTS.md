@@ -69,12 +69,13 @@ are not part of it.
 
 `.github/workflows/ci.yml` runs on pull requests to `master` and on pushes to `master`. The
 `changes` job detects documentation-only changes and the `docs` job checks them fast. `lint`
-(only `bin/lint.sh`), `test-unit` (PHP 8.2 to 8.5), `build-piper-glibc`, `build-piper-musl` and
+(only `bin/lint.sh`), `test-unit` (PHP 8.2 to 8.5), `build-piper-glibc` and
 `test-integration` run only for code changes. `ci-ok` aggregates the results and is the check to require.
 
-Tag pushes (`v*`) run `.github/workflows/release.yml`: it builds libpiper for glibc and musl,
-packages the four archives (`piper-tts install-deps` downloads the three glibc ones), and creates the GitHub
-Release from the `CHANGELOG.md` section.
+Tag pushes (`v*`) run `.github/workflows/release.yml`: it builds libpiper for glibc only,
+packages the three archives that `piper-tts install-deps` downloads, and creates the GitHub
+Release from the `CHANGELOG.md` section. There is no musl build: upstream publishes no musl
+ONNX Runtime for libpiper to link.
 
 ## License
 

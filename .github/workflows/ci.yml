@@ -124,27 +124,6 @@ jobs:
           piper1-gpl/libpiper/build/piper1-gpl/libpiper/install/share/espeak-ng-data
         retention-days: 7
 
-
-
-  build-piper-musl:
-    name: build-piper-musl
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    container: alpine:3.23
-    
-    steps:
-    - name: Install git and build dependencies
-      run: |
-        apk add --no-cache cmake build-base git linux-headers pkgconfig onnxruntime-dev
-        
-    - uses: actions/checkout@v7
-      with:
-        submodules: recursive
-        
-    - name: Build Piper
-      run: make build-libpiper
-
   test-integration:
     runs-on: ubuntu-latest
     needs: [changes, build-piper-glibc]
@@ -191,7 +170,7 @@ jobs:
 
   ci-ok:
     name: ci-ok
-    needs: [changes, docs, lint, test-unit, build-piper-glibc, build-piper-musl, test-integration]
+    needs: [changes, docs, lint, test-unit, build-piper-glibc, test-integration]
     if: always()
     runs-on: ubuntu-latest
     steps:

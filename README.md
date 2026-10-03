@@ -22,6 +22,9 @@ Fast, local text-to-speech synthesis without external services. Piper runs entir
 - Piper library (libpiper.so) and ONNX Runtime
 - Voice models (.onnx files)
 
+The pre-built libraries are for **Linux x86_64 with glibc**. Any other platform has to build
+libpiper from source (see [Building from Source](#building-from-source)).
+
 ## Installation
 
 ```bash
@@ -51,11 +54,6 @@ tar -xzf libpiper-linux-x86_64.tar.gz
 tar -xzf libonnxruntime-linux-x86_64.tar.gz
 tar -xzf espeak-ng-data.tar.gz
 ```
-
-On Alpine Linux (musl) use `libpiper-linux-musl-x86_64.tar.gz` instead of the two glibc
-libpiper and ONNX Runtime archives, together with `espeak-ng-data.tar.gz`. Install ONNX Runtime
-from the Alpine package: `apk add onnxruntime-dev` (the musl build of libpiper is linked
-against it).
 
 ### Building from Source
 

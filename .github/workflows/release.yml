@@ -1,6 +1,6 @@
 name: Release
 
-# Builds libpiper for Linux (glibc and musl) and attaches the archives to the GitHub Release.
+# Builds libpiper for Linux (glibc) and attaches the archives to the GitHub Release.
 # ci.yml runs on the default branch (the release gate requires a green ci-ok there), so the
 # test suites are not repeated on the tag.
 # The notes come from the matching CHANGELOG.md section: merge it before tagging.
@@ -56,44 +56,9 @@ jobs:
           espeak-ng-data.tar.gz
         retention-days: 7
 
-  build-piper-musl:
-    runs-on: ubuntu-latest
-    container: alpine:3.23
-    
-    steps:
-    - name: Install git and build dependencies
-      run: |
-        apk add --no-cache cmake build-base git linux-headers pkgconfig onnxruntime-dev
-        
-    - uses: actions/checkout@v7
-      with:
-        submodules: recursive
-        
-    - name: Build Piper
-      run: make build-libpiper
-      
-    - name: Strip debug symbols
-      run: |
-        strip --strip-debug piper1-gpl/libpiper/build/libpiper.so
-      
-    - name: Package build artifacts
-      run: |
-        # The prebuilt ONNX Runtime that libpiper downloads is glibc-only, so this job links
-        # the Alpine package (onnxruntime-dev). It is not shipped: Alpine users install it with
-        # `apk add onnxruntime-dev`. The espeak-ng data is the same for glibc and musl.
-        tar -czf libpiper-linux-musl-x86_64.tar.gz -C piper1-gpl/libpiper/build libpiper.so
-        
-    - name: Upload packaged artifacts
-      uses: actions/upload-artifact@v7
-      with:
-        name: piper-release-musl
-        path: |
-          libpiper-linux-musl-x86_64.tar.gz
-        retention-days: 7
-
   publish:
     name: create the release
-    needs: [build-piper-glibc, build-piper-musl]
+    needs: [build-piper-glibc]
     runs-on: ubuntu-latest
     permissions:
       contents: write
