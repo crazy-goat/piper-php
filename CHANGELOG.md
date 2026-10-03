@@ -11,7 +11,8 @@ All notable changes to this project are documented here, following
 - libpiper (the `piper1-gpl` submodule) is upgraded from v1.4.1 to v1.8.0 (ONNX Runtime stays at
   1.22.0 for glibc). The `piper.h` changes are additive (`piper_create_with_options`,
   `piper_version`, `EXPORT_SYMBOL`), so the FFI definitions and the public PHP API are
-  unchanged. Closes #21; replaces Dependabot PR #3.
+  unchanged. This is the upgrade part of #21; its musl part is replaced by #26 below. It also
+  replaces Dependabot PR #3.
 - libpiper now installs the espeak-ng data to `share/espeak-ng-data` instead of `espeak-ng-data`;
   `make build-libs`, CI and the release workflow use the new path.
 
@@ -29,7 +30,7 @@ All notable changes to this project are documented here, following
   redistribute together with its dependencies.
 - The musl archives never worked. `libonnxruntime-linux-musl-x86_64.tar.gz`, published up to and
   including v0.2.0, holds a **glibc** library: its `libonnxruntime.so.1.22.0` has versioned
-  references to `GLIBC_2.2` up to `GLIBC_2.27`, which the musl loader cannot resolve. The name
+  references to `GLIBC_2.2.5` up to `GLIBC_2.27`, which the musl loader cannot resolve. The name
   said musl, the content was glibc. `vendor/bin/piper-tts install-deps` never downloaded these
   archives, so Composer installs were never affected.
 - What to do on musl: run piper-php on a glibc-based Linux image (Debian, Ubuntu) instead of
